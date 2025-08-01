@@ -65,28 +65,28 @@ gke-dc1dtu-itomv2-559bd6d476-rxskj       10.81           15.76           68.5%  
 gke-dc1dtu-itomv2-559bd6d476-wpvb7       9.47            15.76           60.0%      19.45           36.65           53.0%      No
 gke-dc1dtu-itomv2-559bd6d476-wq776       9.03            15.76           57.2%      19.64           36.65           53.5%      No
 gke-dc1dtu-metallb-6f5b689667-cpdb2      1.05            3.88            27.0%      .71             6.81            10.4%      Yes
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-6pf87    7.65            7.84            97.5%      28.79           59.10           48.7%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-7nqks    7.35            7.84            93.7%      33.20           59.10           56.1%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-ggnf6    4.45            7.84            56.7%      19.11           59.10           32.3%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-h2g7v    7.55            7.84            96.3%      37.86           59.10           64.0%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-l8ws2    7.75            7.84            98.8%      57.30           59.10           96.9%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-qwjfk    7.55            7.84            96.3%      36.29           59.10           61.4%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-rr99d    7.65            7.84            97.5%      50.26           59.10           85.0%      No
-gke-dc1dtu-sbapiv4-78d9545465-2s4dk      23.66           23.68           99.9%      44.07           44.13           99.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-42brl      22.35           23.68           94.3%      38.33           44.13           86.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-48b85      12.25           23.68           51.7%      25.50           44.13           57.7%      No
-gke-dc1dtu-sbapiv4-78d9545465-4sdk9      23.00           23.68           97.1%      35.91           44.13           81.3%      No
-gke-dc1dtu-sbapiv4-78d9545465-5gstv      23.65           23.68           99.8%      25.62           44.13           58.0%      No
-gke-dc1dtu-sbapiv4-78d9545465-5mqsv      22.70           23.68           95.8%      38.39           44.13           86.9%      No
-gke-dc1dtu-sbapiv4-78d9545465-6jkmg      20.30           23.68           85.7%      37.45           44.13           84.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-7s8sx      23.60           23.68           99.6%      35.67           44.13           80.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-95kmk      23.05           23.68           97.3%      37.79           44.13           85.6%      No
-gke-dc1dtu-sbapiv4-78d9545465-cg2zj      21.25           23.68           89.7%      29.63           44.13           67.1%      No
-gke-dc1dtu-sbapiv4-78d9545465-d6bz7      19.56           23.68           82.6%      42.47           44.13           96.2%      No
-gke-dc1dtu-sbapiv4-78d9545465-qcmr8      21.95           23.68           92.6%      27.48           44.13           62.2%      No
-gke-dc1dtu-sbapiv4-78d9545465-rsb5j      12.40           23.68           52.3%      37.39           44.13           84.7%      No
-gke-dc1dtu-sbapiv4-78d9545465-sh2zm      22.90           23.68           96.7%      33.06           44.13           74.9%      No
-gke-dc1dtu-sbapiv4-78d9545465-zb8zr      23.40           23.68           98.8%      38.30           44.13           86.7%      No
+gke-dc1dtu-app-1-9-5fdbccdb66-6pf87    7.65            7.84            97.5%      28.79           59.10           48.7%      No
+gke-dc1dtu-app-1-9-5fdbccdb66-7nqks    7.35            7.84            93.7%      33.20           59.10           56.1%      No
+gke-dc1dtu-app-1-9-5fdbccdb66-ggnf6    4.45            7.84            56.7%      19.11           59.10           32.3%      No
+gke-dc1dtu-app-1-9-5fdbccdb66-h2g7v    7.55            7.84            96.3%      37.86           59.10           64.0%      No
+gke-dc1dtu-app-1-9-5fdbccdb66-l8ws2    7.75            7.84            98.8%      57.30           59.10           96.9%      No
+gke-dc1dtu-app-1-9-5fdbccdb66-qwjfk    7.55            7.84            96.3%      36.29           59.10           61.4%      No
+gke-dc1dtu-app-1-9-5fdbccdb66-rr99d    7.65            7.84            97.5%      50.26           59.10           85.0%      No
+gke-dc1dtu-appv4-78d9545465-2s4dk      23.66           23.68           99.9%      44.07           44.13           99.8%      No
+gke-dc1dtu-appv4-78d9545465-42brl      22.35           23.68           94.3%      38.33           44.13           86.8%      No
+gke-dc1dtu-appv4-78d9545465-48b85      12.25           23.68           51.7%      25.50           44.13           57.7%      No
+gke-dc1dtu-appv4-78d9545465-4sdk9      23.00           23.68           97.1%      35.91           44.13           81.3%      No
+gke-dc1dtu-appv4-78d9545465-5gstv      23.65           23.68           99.8%      25.62           44.13           58.0%      No
+gke-dc1dtu-appv4-78d9545465-5mqsv      22.70           23.68           95.8%      38.39           44.13           86.9%      No
+gke-dc1dtu-appv4-78d9545465-6jkmg      20.30           23.68           85.7%      37.45           44.13           84.8%      No
+gke-dc1dtu-appv4-78d9545465-7s8sx      23.60           23.68           99.6%      35.67           44.13           80.8%      No
+gke-dc1dtu-appv4-78d9545465-95kmk      23.05           23.68           97.3%      37.79           44.13           85.6%      No
+gke-dc1dtu-appv4-78d9545465-cg2zj      21.25           23.68           89.7%      29.63           44.13           67.1%      No
+gke-dc1dtu-appv4-78d9545465-d6bz7      19.56           23.68           82.6%      42.47           44.13           96.2%      No
+gke-dc1dtu-appv4-78d9545465-qcmr8      21.95           23.68           92.6%      27.48           44.13           62.2%      No
+gke-dc1dtu-appv4-78d9545465-rsb5j      12.40           23.68           52.3%      37.39           44.13           84.7%      No
+gke-dc1dtu-appv4-78d9545465-sh2zm      22.90           23.68           96.7%      33.06           44.13           74.9%      No
+gke-dc1dtu-appv4-78d9545465-zb8zr      23.40           23.68           98.8%      38.30           44.13           86.7%      No
 gke-dc1dtu-usrcp-01                      1.49            3.88            38.4%      .96             14.28           6.7%       Yes
 gke-dc1dtu-usrcp-02                      1.53            3.88            39.4%      .89             14.28           6.2%       Yes
 gke-dc1dtu-usrcp-03                      1.42            3.88            36.5%      .80             14.28           5.6%       Yes
@@ -100,7 +100,7 @@ Free MEM: 0 / Needed: .71 (GiB)
 ```
 
 ```sh
-sh check-ultilized.sh   --include="sbapi|itom"   --exclude="usrcp|base"
+sh check-ultilized.sh   --include="app|itom"   --exclude="usrcp|base"
 ### PHASE I - CHECK NODE UTILIZATION
 
 Node                                     CPU Req         CPU Total       CPU%       Mem Req (GiB)   Mem Total       Mem%       Underutilized?
@@ -110,33 +110,33 @@ gke-dc1dtu-itomv2-559bd6d476-njjbj       8.53            15.76           54.1%  
 gke-dc1dtu-itomv2-559bd6d476-rxskj       10.81           15.76           68.5%      19.70           36.65           53.7%      No
 gke-dc1dtu-itomv2-559bd6d476-wpvb7       9.47            15.76           60.0%      19.45           36.65           53.0%      No
 gke-dc1dtu-itomv2-559bd6d476-wq776       9.03            15.76           57.2%      19.64           36.65           53.5%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-6pf87    7.65            7.84            97.5%      28.79           59.10           48.7%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-7nqks    7.35            7.84            93.7%      33.20           59.10           56.1%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-ggnf6    4.45            7.84            56.7%      19.11           59.10           32.3%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-h2g7v    7.55            7.84            96.3%      37.86           59.10           64.0%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-l8ws2    7.75            7.84            98.8%      57.30           59.10           96.9%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-qwjfk    7.55            7.84            96.3%      36.29           59.10           61.4%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-rr99d    7.65            7.84            97.5%      50.26           59.10           85.0%      No
-gke-dc1dtu-sbapiv4-78d9545465-2s4dk      23.66           23.68           99.9%      44.07           44.13           99.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-42brl      22.35           23.68           94.3%      38.33           44.13           86.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-48b85      12.25           23.68           51.7%      25.50           44.13           57.7%      No
-gke-dc1dtu-sbapiv4-78d9545465-4sdk9      23.00           23.68           97.1%      35.91           44.13           81.3%      No
-gke-dc1dtu-sbapiv4-78d9545465-5gstv      23.65           23.68           99.8%      25.62           44.13           58.0%      No
-gke-dc1dtu-sbapiv4-78d9545465-5mqsv      22.70           23.68           95.8%      38.39           44.13           86.9%      No
-gke-dc1dtu-sbapiv4-78d9545465-6jkmg      20.30           23.68           85.7%      37.45           44.13           84.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-7s8sx      23.60           23.68           99.6%      35.67           44.13           80.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-95kmk      23.05           23.68           97.3%      37.79           44.13           85.6%      No
-gke-dc1dtu-sbapiv4-78d9545465-cg2zj      21.25           23.68           89.7%      29.63           44.13           67.1%      No
-gke-dc1dtu-sbapiv4-78d9545465-d6bz7      19.56           23.68           82.6%      42.47           44.13           96.2%      No
-gke-dc1dtu-sbapiv4-78d9545465-qcmr8      21.95           23.68           92.6%      27.48           44.13           62.2%      No
-gke-dc1dtu-sbapiv4-78d9545465-rsb5j      13.00           23.68           54.8%      38.02           44.13           86.1%      No
-gke-dc1dtu-sbapiv4-78d9545465-sh2zm      22.90           23.68           96.7%      33.06           44.13           74.9%      No
-gke-dc1dtu-sbapiv4-78d9545465-zb8zr      23.40           23.68           98.8%      38.30           44.13           86.7%      No
+gke-dc1dtu-app-1-9-5fdbccdb66-6pf87    7.65            7.84            97.5%      28.79           59.10           48.7%      No
+gke-dc1dtu-app-1-9-5fdbccdb66-7nqks    7.35            7.84            93.7%      33.20           59.10           56.1%      No
+gke-dc1dtu-app-1-9-5fdbccdb66-ggnf6    4.45            7.84            56.7%      19.11           59.10           32.3%      No
+gke-dc1dtu-app-1-9-5fdbccdb66-h2g7v    7.55            7.84            96.3%      37.86           59.10           64.0%      No
+gke-dc1dtu-app-1-9-5fdbccdb66-l8ws2    7.75            7.84            98.8%      57.30           59.10           96.9%      No
+gke-dc1dtu-app-1-9-5fdbccdb66-qwjfk    7.55            7.84            96.3%      36.29           59.10           61.4%      No
+gke-dc1dtu-app-1-9-5fdbccdb66-rr99d    7.65            7.84            97.5%      50.26           59.10           85.0%      No
+gke-dc1dtu-appv4-78d9545465-2s4dk      23.66           23.68           99.9%      44.07           44.13           99.8%      No
+gke-dc1dtu-appv4-78d9545465-42brl      22.35           23.68           94.3%      38.33           44.13           86.8%      No
+gke-dc1dtu-appv4-78d9545465-48b85      12.25           23.68           51.7%      25.50           44.13           57.7%      No
+gke-dc1dtu-appv4-78d9545465-4sdk9      23.00           23.68           97.1%      35.91           44.13           81.3%      No
+gke-dc1dtu-appv4-78d9545465-5gstv      23.65           23.68           99.8%      25.62           44.13           58.0%      No
+gke-dc1dtu-appv4-78d9545465-5mqsv      22.70           23.68           95.8%      38.39           44.13           86.9%      No
+gke-dc1dtu-appv4-78d9545465-6jkmg      20.30           23.68           85.7%      37.45           44.13           84.8%      No
+gke-dc1dtu-appv4-78d9545465-7s8sx      23.60           23.68           99.6%      35.67           44.13           80.8%      No
+gke-dc1dtu-appv4-78d9545465-95kmk      23.05           23.68           97.3%      37.79           44.13           85.6%      No
+gke-dc1dtu-appv4-78d9545465-cg2zj      21.25           23.68           89.7%      29.63           44.13           67.1%      No
+gke-dc1dtu-appv4-78d9545465-d6bz7      19.56           23.68           82.6%      42.47           44.13           96.2%      No
+gke-dc1dtu-appv4-78d9545465-qcmr8      21.95           23.68           92.6%      27.48           44.13           62.2%      No
+gke-dc1dtu-appv4-78d9545465-rsb5j      13.00           23.68           54.8%      38.02           44.13           86.1%      No
+gke-dc1dtu-appv4-78d9545465-sh2zm      22.90           23.68           96.7%      33.06           44.13           74.9%      No
+gke-dc1dtu-appv4-78d9545465-zb8zr      23.40           23.68           98.8%      38.30           44.13           86.7%      No
 
 ✅ No underutilized node found (CPU+MEM < 50%)
 ```
 
-- Phân tích các node khớp `sbapi` hoặc `itom`
+- Phân tích các node khớp `app` hoặc `itom`
 - Bỏ qua node thuộc `usrcp` hoặc `base`
 - Nếu có --promote-evict node yếu và đủ điều kiện → tự động cordon + evict
 
