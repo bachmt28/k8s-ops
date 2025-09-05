@@ -1,0 +1,127 @@
+@Library('jenk-lib') _
+
+pipeline {
+  agent { label 'local-agent' }
+  options {
+    timestamps()
+    ansiColor('xterm')
+    timeout(time: 10, unit: 'MINUTES')
+    buildDiscarder(logRotator(daysToKeepStr: '7', numToKeepStr: '1000'))
+  }
+
+  // Chỉ còn payload là tham số người chạy được nhập
+  parameters {
+    text(name: 'EXC_PAYLOAD', 
+    description: 'Khai báo đăng ký workload ngoài giờ như mẫu',
+    defaultValue: '''annotations:
+  on-exeption-247: false
+  on-exeption-out-worktime: true
+  on-exeption-requester: 'PM someone'
+  on-exeption-reason: 'test ebank'
+  on-exeption-endtime: 20250923
+workload-list: |-
+  sb-vhht-dev | workloadA
+  sb-vhht-test | workloadB
+  sb-vhht-test | workloadC''')
+
+  }
+
+  environment {
+    // CHỐT bằng env để user không chỉnh được
+    RAW_ROOT = '/tmp/exceptions/raw'
+    RETAIN_DAYS = '90'
+    // 0 = xoá thật, 1 = dry-run (đổi sang 1 khi cần soi trước)
+    RETENTION_DRY_RUN = '0'
+
+    K8S_KCFG_ID = 'local.backend-gke-dc1-dev-usrcl'
+    webexBotToken = credentials('webexBOT_VHHT') // chưa dùng ở step 1
+    HTTPS_PROXY = 'http://dc2-proxyuat.seauat.com.vn:8080'
+    NO_PROXY = 'localhost,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.seabank.com.vn,.seauat.com.vn,connectgateway.googleapis.com,199.36.153.8/30'
+    TZ = 'Asia/Bangkok'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+
+    stage('Preflight') {
+      steps {
+        // Lấy user bấm Run và gắn vào tên build
+        wrap([$class: 'BuildUser']) {
+          script {
+            def who = env.BUILD_USER_ID ?: env.BUILD_USER ?: 'unknown'
+            // cố lấy requester từ payload cho dễ nhận diện
+            def req = null
+            def m = (params?.EXC_PAYLOAD ?: '') =~ /on-exeption-requester:\s*['"]?([^\n'"]+)/
+            if (m.find()) { req = m.group(1).trim() }
+
+            currentBuild.displayName = "#${env.BUILD_NUMBER} · ${who}" + (req ? " · ${req}" : "")
+            // mô tả ngắn gọn (tránh đụng script-approval)
+            currentBuild.description = "Submit by ${who}" + (req ? " · requested from ${req}" : "")
+          }
+        }
+
+        // Check payload + chuẩn bị thư mục như cũ
+        sh '''
+          set -e
+          # payload không được để placeholder
+          if [ -z "${EXC_PAYLOAD}" ] || [ "${EXC_PAYLOAD}" = "Dữ liệu cần được vào đúng format đã phổ biến" ]; then
+            echo "❌ EXC_PAYLOAD rỗng/placeholder"; exit 1
+          fi
+          mkdir -p "${RAW_ROOT}"
+        '''
+      }
+    }
+
+
+    stage('Validate Payload') {
+      steps {
+        script {
+          sh '''
+            set -e
+            # chạy validator: fail fast nếu sai
+            EXC_PAYLOAD="${EXC_PAYLOAD}" \
+            python3.9 exception-ontime/validate-exception-payload.py
+          '''
+        }
+      }
+    }
+
+    stage('RBAC Check') {
+      steps {
+        // Bind secret file theo credentialsId cố định (scope folder)
+        withCredentials([file(credentialsId: env.K8S_KCFG_ID, variable: 'KUBECONFIG_FILE')]) {
+          sh '''
+            set -e
+            # Không cần kiểm tra tồn tại vì withCredentials sẽ fail sớm nếu ID sai/không có quyền
+            EXC_PAYLOAD="${EXC_PAYLOAD}" \
+            KUBECONFIG_FILE="${KUBECONFIG_FILE}" \
+            KUBE_CONTEXT="${KUBE_CONTEXT}" \
+            STRICT_PATCH="${STRICT_PATCH:-0}" \
+            DEBUG="${DEBUG:-0}" \
+            python3 exception-ontime/validate-kube-auth.py
+          '''
+        }
+      }
+    }
+
+
+    stage('Execute') {
+      steps {
+        wrap([$class: 'BuildUser']) {
+          sh '''
+            python3.9 exception-ontime/build-exception-draft.py
+          '''
+        }
+        
+      }
+    }
+
+  }
+
+  post {
+    success { echo '✅ Step 1 OK: Draft đã publish vào RAW_ROOT và lưu artifacts.' }
+    failure { echo '❌ Step 1 FAIL: kiểm tra log parse YAML / quyền ghi RAW_ROOT / path script.' }
+  }
+}

@@ -1,0 +1,10 @@
+annotations:
+  on-exeption-247: true
+  on-exeption-out-worktime: false
+  on-exeption-requester: 'PM'
+  on-exeption-reason: 'test ebank'
+  on-exeption-endtime: 20250923
+workload-list: |-
+  sb-vhht-dev | workloadA
+  sb-vhht-test | workloadB
+  sb-vhht-test | workloadC

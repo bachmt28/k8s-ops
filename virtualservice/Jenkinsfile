@@ -1,0 +1,26 @@
+pipeline {
+  agent any
+  environment {
+    PYTHONUNBUFFERED = 1
+  }
+  stages {
+    stage('Extract Inventory') {
+      steps {
+        sh 'bash extract_inventory.sh'
+      }
+    }
+    stage('Merge Inventory') {
+      steps {
+        sh 'python3 merge_inventory.py'
+      }
+    }
+  }
+  post {
+    success {
+      echo '✅ Inventory merged và ghi ra thư mục Updated'
+    }
+    failure {
+      echo '❌ Có lỗi khi xử lý'
+    }
+  }
+}

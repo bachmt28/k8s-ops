@@ -1,0 +1,48 @@
+@Library('jenk-lib') _
+
+pipeline {
+agent {label 'local-agent'}
+options {
+  timeout(10) // timeout after 5 minute  
+  disableConcurrentBuilds() //Only 1 build run at the sametime. current build wait previous build finish to run
+  buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '14', numToKeepStr: '50')
+}
+
+
+environment {
+  webexTagName = '[GKE-DC2-JENKINS-DT]' // Use for tag name on notify content
+  webexBotToken = credentials('webexBOT_VHHT')
+  HTTPS_PROXY='http://dc2-proxyuat.seauat.com.vn:8080'
+  NO_PROXY="localhost,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16, .seabank.com.vn, .seauat.com.vn, connectgateway.googleapis.com,199.36.153.8/30"
+  nsList='sb-backendapi sb-backendapi-r22 sb-backendapi-dev sb-adapter-uat' // sb-seapay-dev sb-seapay-test
+}
+
+triggers {
+  cron '''H/10 19-23 * * *
+H/10 0-6 * * *
+  '''
+}
+  stages {
+//// === ////
+    stage ('Execute'){
+      steps { script{
+        withCredentials([file(credentialsId: "local.backend-gke-dc1-dev-usrcl", variable: 'FILE')]) {
+            a =  sh (script: '''
+              export KUBECONFIG=\$FILE
+              sh resources/check-ultilized.sh --include="sbapiv7" --promote-evict
+            ''', returnStdout: true)
+            println(a)
+        }
+      }}
+    }
+
+//// === ////
+    // stage ('Noti'){
+    //   steps {script{
+    //     notiWebex.markdown('Tung',"\n```\n${a}```" )
+    //   }}
+    // }
+
+//// === ////
+  }
+}

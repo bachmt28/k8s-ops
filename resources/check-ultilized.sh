@@ -9,6 +9,7 @@ NODE_LIST_TMP=".node-list.tmp"
 INCLUDE_PATTERN=""
 EXCLUDE_PATTERN=""
 PROMOTE=false
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 for arg in "$@"; do
   case "$arg" in
@@ -65,7 +66,7 @@ fi
 
 # === Filter age >= 1h ===
 NOW_TS=$(date +%s)
-AGE_THRESHOLD=3600
+AGE_THRESHOLD=1800
 NODE_LIST_FILTERED=".node-list.filtered"
 > "$NODE_LIST_FILTERED"
 
@@ -83,7 +84,7 @@ done < "$NODE_LIST_TMP"
 mv "$NODE_LIST_FILTERED" "$NODE_LIST_TMP"
 
 if [ ! -s "$NODE_LIST_TMP" ]; then
-  echo "⚠️ No eligible nodes older than 1 hour found!"
+  echo "⚠️ No eligible nodes older than $AGE_THRESHOLD seconds found!"
   exit 0
 fi
 
@@ -122,7 +123,7 @@ while read NODE; do
   MEM_RATIO=$(echo "scale=1; if ($ALLOC_MEM_GiB==0) 0 else 100 * $REQ_MEM_GiB / $ALLOC_MEM_GiB" | bc)
 
   IS_UNDERUTILIZED="No"
-  if [ "$(echo "$CPU_RATIO < 50.0" | bc)" -eq 1 ] && [ "$(echo "$MEM_RATIO < 50.0" | bc)" -eq 1 ]; then
+  if [ "$(echo "$CPU_RATIO < 45.0" | bc)" -eq 1 ] && [ "$(echo "$MEM_RATIO < 45.0" | bc)" -eq 1 ]; then
     IS_UNDERUTILIZED="Yes"
     is_lower=$(echo "$CPU_RATIO < $LOWEST_RATIO" | bc)
     if [ "$is_lower" -eq 1 ]; then
@@ -189,8 +190,9 @@ if [ -n "$LOWEST_NODE" ]; then
   if [ "$CPU_OK" -eq 1 ] && [ "$MEM_OK" -eq 1 ]; then
     echo "✅ Nodegroup has enough free resources for evacuation."
     if $PROMOTE; then
-      ./cordon.sh "$LOWEST_NODE"
-      ./evict.sh "$LOWEST_NODE"
+      sh ${SCRIPT_DIR}/cordon.sh "$LOWEST_NODE"
+      sh ${SCRIPT_DIR}/evict.sh "$LOWEST_NODE"
+
     else
       echo "⚠️ Skipping cordon & evict due to missing --promote-evict flag"
     fi
@@ -200,7 +202,7 @@ if [ -n "$LOWEST_NODE" ]; then
     echo "Free MEM: $TOTAL_FREE_MEM_GiB / Needed: $NEEDED_MEM_GiB (GiB)"
   fi
 else
-  echo "\n✅ No underutilized node found (CPU+MEM < 50%)"
+  echo "\n✅ No underutilized node found (CPU+MEM < 45%)"
 fi
 
 rm -f "$NODE_LIST_TMP" "$TMP_FILE"

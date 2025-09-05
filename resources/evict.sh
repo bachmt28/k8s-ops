@@ -1,8 +1,10 @@
 #!/bin/sh
 
+
+
 NODE_PATTERNS="$1"     # Regex khớp tên node
 DRY_RUN_FLAG="$2"      # --dry-run (tuỳ chọn)
-NS_PREFIX="sb-"
+NS_PREFIX=""
 
 MATCHED_NODES_TMP=".matched-nodes.tmp"
 > "$MATCHED_NODES_TMP"

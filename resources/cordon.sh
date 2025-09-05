@@ -22,3 +22,4 @@ echo "🚫 Cordon node: $NODE"
 for NODE in "$@"; do
   [ -n "$NODE" ] && kubectl cordon "$NODE"
 done
+

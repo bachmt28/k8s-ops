@@ -1,0 +1,63 @@
+@Library('jenk-lib') _
+
+pipeline {
+  agent { label 'local-agent' }
+  options {
+    timestamps()
+    ansiColor('xterm')
+    timeout(time: 10, unit: 'MINUTES')
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(daysToKeepStr: '14', numToKeepStr: '50'))
+  }
+
+  // Chỉ còn payload là tham số người chạy được nhập
+
+
+  environment {
+    // CHỐT bằng env để user không chỉnh được
+    RAW_ROOT = '/tmp/exceptions/raw'
+    OUT_DIR  = '/tmp/exceptions/out'
+    LOOKBACK_DAYS = '90'
+    MAX_DAYS = '60'
+    TZ = 'Asia/Bangkok'
+
+    webexBotToken = credentials('webexBOT_VHHT') // chưa dùng ở step 1
+    HTTPS_PROXY = 'http://dc2-proxyuat.seauat.com.vn:8080'
+    NO_PROXY = 'localhost,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.seabank.com.vn,.seauat.com.vn,connectgateway.googleapis.com,199.36.153.8/30'
+    
+    DEBUG = 0
+    DEBUG_DUMP_RAW = 0
+    DEBUG_DUMP_GROUPS = 0
+  }
+
+  triggers {
+    cron('*/10 * * * *')
+  }
+  
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+    
+    stage('Skip if RAW unchanged (10m)') {
+      steps {
+        sh '''
+          set -e
+          RAW_ROOT="${RAW_ROOT:-/data/exceptions/raw}"
+          CHANGED=$(find "${RAW_ROOT}" -type f -name 'raw-*.jsonl' -mmin -10 | head -n1 || true)
+          if [ -z "${CHANGED}" ]; then
+            echo "ℹ️  No RAW change in last 10 minutes. Skip."
+            exit 0
+          fi
+        '''
+      }
+    }
+
+    stage('Dedupe & Publish') {
+      steps {
+        sh '''
+          python3.9 exception-ontime/dedupe_exceptions.py
+          cat /tmp/exceptions/out/digest_exceptions.webex.md
+        '''
+      }
+    }
+  }
+}

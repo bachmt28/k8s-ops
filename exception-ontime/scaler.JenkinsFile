@@ -1,0 +1,114 @@
+pipeline {
+  agent { label 'local-agent' }
+
+  options {
+    timeout(time: 15, unit: 'MINUTES')
+    disableConcurrentBuilds()     // tránh race trên state-file
+    buildDiscarder(logRotator(daysToKeepStr: '14', numToKeepStr: '50'))
+  }
+
+  // chạy 5' 1 lần; script sẽ tự quyết "noop" nếu không trúng mốc
+  triggers { cron('H/5 * * * *') }
+
+  environment {
+    TZ                  = 'Asia/Bangkok'
+
+    // IO paths
+    OUT_DIR             = '/tmp/exceptions/out'
+    STATE_ROOT          = '/tmp/exceptions/state'
+
+    // Config files (đặt cạnh Jenkinsfile)
+    MANAGED_NS_FILE     = 'managed-ns.txt'
+    DENY_NS_FILE        = 'deny-ns.txt'           // optional
+    HOLIDAYS_FILE       = 'holidays.txt'
+    HOLIDAY_MODE        = 'hard_off'              // theo chốt
+
+    // Scaler behavior
+    TARGET_DOWN         = '0'
+    DEFAULT_UP          = '1'
+    DOWN_HPA_HANDLING   = 'force'                  // skip hạ HPA để tránh kéo ngược
+    JITTER_MAX_S        = '60'
+    HYST_MIN            = '3'
+
+    // Compute Active
+    MAX_DAYS            = '60'
+
+    // Debug
+    DEBUG               = '0'
+  }
+
+  stages {
+
+    stage('Preflight & Files') {
+      steps {
+        sh '''
+          set -e
+          # ensure folders
+          mkdir -p "${OUT_DIR}" "${STATE_ROOT}"
+
+          # check scripts tồn tại
+          test -f exception-ontime/compute-active-exceptions.py || { echo "❌ missing compute-active-exceptions.py"; exit 2; }
+          test -f exception-ontime/scale-by-exceptions.py       || { echo "❌ missing scale-by-exceptions.py"; exit 2; }
+
+          # check config files
+          test -s "${MANAGED_NS_FILE}" || { echo "❌ missing ${MANAGED_NS_FILE}"; exit 2; }
+          test -s "${HOLIDAYS_FILE}"    || { echo "⚠️  ${HOLIDAYS_FILE} trống? vẫn chạy được, coi như không có ngày lễ."; }
+
+          # show basic env
+          echo "TZ=${TZ}"
+          date
+        '''
+      }
+    }
+
+    stage('Compute Active Exceptions') {
+      steps {
+        sh '''
+          set -e
+          # Nếu polished_exceptions.jsonl có sẵn thì cập nhật active; nếu thiếu, bỏ qua nhẹ để scaler vẫn tự quyết (ví dụ chỉ bật 24/7 theo state/HPA…)
+          if [ -s "${OUT_DIR}/polished_exceptions.jsonl" ]; then
+            OUT_DIR="${OUT_DIR}" \
+            MAX_DAYS="${MAX_DAYS}" \
+            DEBUG="${DEBUG}" \
+            python3 exception-ontime/compute-active-exceptions.py
+          else
+            echo "ℹ️  ${OUT_DIR}/polished_exceptions.jsonl chưa có; bỏ qua compute-active (scaler sẽ vẫn chạy AUTO và có thể noop)."
+          fi
+        '''
+      }
+    }
+
+    stage('Scaler (AUTO)') {
+      steps {
+        // dùng kubeconfig credentials của job folder (mỗi team/folder tự gán id khác nhau)
+        // đổi 'kubeconfig_ops' thành id thật của bạn
+        withCredentials([file(credentialsId: 'local.backend-gke-dc1-dev-usrcl', variable: 'KUBECONFIG_FILE')]) {
+          sh '''
+            set -e
+            export KUBECONFIG="${KUBECONFIG_FILE}"
+
+            ACTION="auto" \
+            MANAGED_NS_FILE="${MANAGED_NS_FILE}" \
+            DENY_NS_FILE="${DENY_NS_FILE}" \
+            HOLIDAYS_FILE="${HOLIDAYS_FILE}" \
+            HOLIDAY_MODE="${HOLIDAY_MODE}" \
+            DOWN_HPA_HANDLING="${DOWN_HPA_HANDLING}" \
+            TARGET_DOWN="${TARGET_DOWN}" DEFAULT_UP="${DEFAULT_UP}" \
+            TZ="${TZ}" JITTER_MAX_S="${JITTER_MAX_S}" HYST_MIN="${HYST_MIN}" \
+            OUT_DIR="${OUT_DIR}" STATE_ROOT="${STATE_ROOT}" \
+            DEBUG="${DEBUG}" \
+            python3 exception-ontime/scale-by-exceptions.py
+          '''
+        }
+      }
+    }
+
+    stage('Archive Outputs') {
+      steps {
+        sh 'ls -lah ${OUT_DIR} || true'
+        archiveArtifacts artifacts: '*/active_exceptions.*', fingerprint: true, onlyIfSuccessful: false
+        archiveArtifacts artifacts: '*/polished_exceptions.*', fingerprint: true, onlyIfSuccessful: false
+      }
+    }
+  }
+}
