@@ -10,8 +10,25 @@ pipeline {
   // chạy 5' 1 lần; script sẽ tự quyết "noop" nếu không trúng mốc
   triggers { cron('H/10 * * * *') }
   parameters {
-    choice choices: ['auto', 'weekday_prestart', 'weekday_enter_out', 'weekend_pre', 'weekend_close'], name: 'SCALE_ACTION'
+    choice(
+      choices: [
+        'auto',              // Tự động xác định action theo khung giờ (theo TZ=Asia/Bangkok, gồm weekday/weekend, holiday).
+        'weekday_prestart',  // (07:10–08:05 ngày thường) UP tất cả workload trong managed namespaces.
+        'weekday_enter_out', // (17:55–18:05 ngày thường) Chỉ giữ exception (24/7 & ngoài giờ), DOWN phần còn lại.
+        'weekend_pre',       // (08:45–09:05 cuối tuần) UP workload có exception, KHÔNG DOWN workload khác.
+        'weekend_close'      // (19:55–20:05 cuối tuần) Chỉ giữ 24/7, DOWN toàn bộ phần còn lại.
+      ],
+      name: 'SCALE_ACTION',
+      description: '''\
+  Chọn hành động scaler:
+  - auto              → Tự xác định action theo giờ VN (khuyến nghị cho cron).
+  - weekday_prestart  → Buổi sáng ngày thường, bật toàn bộ workload.
+  - weekday_enter_out → Buổi chiều ngày thường, chỉ giữ exceptions, down phần còn lại.
+  - weekend_pre       → Buổi sáng cuối tuần, bật exceptions, không down workload khác.
+  - weekend_close     → Buổi tối cuối tuần, chỉ giữ 24/7, down toàn bộ phần còn lại.'''
+    )
   }
+
   environment {
 
     SCALE_ACTION = "${params.SCALE_ACTION}"

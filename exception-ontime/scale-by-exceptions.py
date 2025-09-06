@@ -11,7 +11,7 @@ Jitter refactor:
 Các tính năng khác (như trước):
 - ACTION=auto quyết định cửa sổ chạy theo giờ VN
 - Holiday (HOLIDAY_MODE=hard_off): DOWN tất cả
-- Ưu tiên exception: cụ thể vs __ALL__ theo end_date (cụ thể > ALL nếu end_date muộn hơn)
+- Ưu tiên exception: cụ thể vs ALL (ví dụ _ALL_) theo end_date (cụ thể > ALL nếu end_date muộn hơn)
 - Hỗ trợ HPA minReplicas khi UP, lưu prev_replicas khi DOWN
 - KUBECTL_TIMEOUT cho mọi lệnh kubectl
 - MAX_ACTIONS_PER_RUN để cắt nhỏ batch mỗi tick
@@ -260,7 +260,7 @@ def load_active_map() -> Dict[str, dict]:
             m[f"{ns}|{wl}"]=r
     return m
 
-# --- precedence: specific vs __ALL__ ---
+# --- precedence: specific vs ALL ---
 def _parse_date_safe(s):
     try:
         return datetime.date.fromisoformat(str(s)[:10])
@@ -270,7 +270,7 @@ def _parse_date_safe(s):
 def exception_mode_for(ns: str, name: str, active_map: Dict[str,dict]) -> str:
     """
     Trả về 'none' | 'out_worktime' | '247' theo nguyên tắc:
-      - Có cả cụ thể (ns|name) và ALL (ns|__ALL__):
+      - Có cả cụ thể (ns|name) và ALL (ns|_ALL_ hoặc ns|__ALL__):
           * nếu end_date_specific > end_date_all  -> chọn CỤ THỂ
           * ngược lại (<= hoặc bằng)              -> chọn ALL
       - Chỉ có 1 trong 2 → chọn cái có
@@ -278,7 +278,8 @@ def exception_mode_for(ns: str, name: str, active_map: Dict[str,dict]) -> str:
       - Nếu cả hai thiếu end_date → chọn ALL
     """
     spec = active_map.get(f"{ns}|{name}")
-    glob = active_map.get(f"{ns}|__ALL__")
+    # Hỗ trợ cả hai biến thể khoá ALL
+    glob = active_map.get(f"{ns}|_ALL_") or active_map.get(f"{ns}|__ALL__")
 
     if spec and not glob:
         return spec.get("mode", "none")
@@ -305,7 +306,7 @@ def should_up_in_weekday_prestart() -> bool:
     return True
 
 def should_up_in_weekend_pre(mode: str) -> bool:
-    # Weekend pre: chỉ bật exception
+    # Weekend pre: chỉ bật exception (247 và ngoài giờ)
     return mode in ("out_worktime","247")
 
 def should_up_in_enter_out(mode: str) -> bool:
@@ -442,6 +443,10 @@ def main():
                         actions += 1
             else:
                 # DOWN path
+                # ⛔ weekend_pre: KHÔNG DOWN workload không thuộc exception
+                if act == "weekend_pre":
+                    continue
+
                 force_down_this_time = (act in ("weekday_enter_out","weekend_close"))
                 if (kind,name) in hpa and (not force_down_this_time) and DOWN_HPA_HANDLING == "skip":
                     print(f"↪️  skip down {kind}/{name} -n {ns} (HPA min={hpa[(kind,name)]})")

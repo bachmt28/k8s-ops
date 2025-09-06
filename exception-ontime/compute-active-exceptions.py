@@ -7,7 +7,13 @@ MAX_DAYS       = int(os.environ.get("MAX_DAYS", "60"))
 TODAY_OVERRIDE = os.environ.get("TODAY","").strip()   # YYYY-MM-DD
 DEBUG          = os.environ.get("DEBUG","0").lower() in ("1","true","yes")
 
-ALL_ALIASES = { "all-of-workload", "all", "*", "__all__", "ALL-OF-WORKLOAD", "ALL", "all-of-workloads", "ALL-OF-WORKLOADS" }
+# Hỗ trợ loạt alias cho "ALL workloads"
+ALL_ALIASES = {
+    "_ALL_", "__ALL__",  # phổ biến
+    "all-of-workload", "all-of-workloads",
+    "ALL-OF-WORKLOAD", "ALL-OF-WORKLOADS",
+    "all", "ALL", "*", "__all__", "_all_"
+}
 
 def today():
     if TODAY_OVERRIDE:
@@ -50,9 +56,11 @@ def main():
             if dl < 0 or dl > MAX_DAYS:
                 continue
 
-            wl_key = "__ALL__" if is_all_token(wl) else wl
+            # Chuẩn hoá ALL về _ALL_
+            wl_key = "_ALL_" if is_all_token(wl) else wl
+
             key = f"{ns}|{wl_key}"
-            # last write wins; polished đã theo last_updated
+            # last write wins; polished đã sorted theo last_updated
             active[key] = {
                 "ns": ns, "workload": wl_key, "mode": mode,
                 "end_date": r.get("end_date"), "days_left": dl,
