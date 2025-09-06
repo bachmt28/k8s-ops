@@ -1,1 +1,2 @@
-sb-prod-core
+sb-trino
+sb-awx

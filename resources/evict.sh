@@ -48,7 +48,7 @@ while read NODE; do
       OWNER_KIND=$(kubectl get pod "$POD" -n "$NS" -o jsonpath='{.metadata.ownerReferences[0].kind}' 2>/dev/null)
 
       # Nếu là DaemonSet hoặc Job → bỏ qua
-      if [ "$OWNER_KIND" = "DaemonSet" ] || [ "$OWNER_KIND" = "Job" ]; then
+      if [ "$OWNER_KIND" = "DaemonSet" ] ; then
         echo "⏭️  Bỏ qua $OWNER_KIND pod: $POD (namespace: $NS)"
         continue
       fi

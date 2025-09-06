@@ -7,7 +7,7 @@ MAX_DAYS       = int(os.environ.get("MAX_DAYS", "60"))
 TODAY_OVERRIDE = os.environ.get("TODAY","").strip()   # YYYY-MM-DD
 DEBUG          = os.environ.get("DEBUG","0").lower() in ("1","true","yes")
 
-ALL_ALIASES = { "all-of-workload", "all", "*", "__all__", "ALL-OF-WORKLOAD", "ALL" }
+ALL_ALIASES = { "all-of-workload", "all", "*", "__all__", "ALL-OF-WORKLOAD", "ALL", "all-of-workloads", "ALL-OF-WORKLOADS" }
 
 def today():
     if TODAY_OVERRIDE:
@@ -56,7 +56,7 @@ def main():
             active[key] = {
                 "ns": ns, "workload": wl_key, "mode": mode,
                 "end_date": r.get("end_date"), "days_left": dl,
-                "owners": r.get("patchers") or [], "requesters": r.get("requesters") or [],
+                "patchers": r.get("patchers") or [], "requesters": r.get("requesters") or [],
             }
             kept += 1
 

@@ -6,7 +6,7 @@ pipeline {
     timestamps()
     ansiColor('xterm')
     timeout(time: 10, unit: 'MINUTES')
-    buildDiscarder(logRotator(daysToKeepStr: '7', numToKeepStr: '1000'))
+    buildDiscarder(logRotator(daysToKeepStr: '90', numToKeepStr: '1000'))
   }
 
   // Chỉ còn payload là tham số người chạy được nhập
@@ -53,12 +53,17 @@ workload-list: |-
             def who = env.BUILD_USER_ID ?: env.BUILD_USER ?: 'unknown'
             // cố lấy requester từ payload cho dễ nhận diện
             def req = null
-            def m = (params?.EXC_PAYLOAD ?: '') =~ /on-exeption-requester:\s*['"]?([^\n'"]+)/
+            def m = (params?.EXC_PAYLOAD ?: '') =~ /on-exeption-requester:\s*['"]?([^\n'"]+)/           
             if (m.find()) { req = m.group(1).trim() }
+
+            // cố lấy reason từ payload cho dễ nhận diện
+            def reason = null
+            def n = (params?.EXC_PAYLOAD ?: '') =~ /on-exeption-reason:\s*['"]?([^\n'"]+)/           
+            if (n.find()) { reason = n.group(1).trim() }
 
             currentBuild.displayName = "#${env.BUILD_NUMBER} · ${who}" + (req ? " · ${req}" : "")
             // mô tả ngắn gọn (tránh đụng script-approval)
-            currentBuild.description = "Submit by ${who}" + (req ? " · requested from ${req}" : "")
+            currentBuild.description = (req ? " · requested from ${req}" : "") + (reason ? " · reason is ${reason}" : "")
           }
         }
 

@@ -22,7 +22,7 @@ Outputs:
   digest_exceptions.webex.md
   digest_exceptions.html
 """
-import os, sys, re, json, csv, datetime, glob, time
+import os, sys, re, json, csv, datetime, time
 from collections import defaultdict
 
 # ---------- Config via env ----------
@@ -117,8 +117,11 @@ def main():
     # lock to avoid concurrent overwrite
     lock_dir = os.path.join(OUT_DIR, ".lock")
     for _ in range(120):
-        try: os.mkdir(lock_dir); break
-        except FileExistsError: time.sleep(1)
+        try:
+            os.mkdir(lock_dir)
+            break
+        except FileExistsError:
+            time.sleep(1)
     else:
         print("⚠️  lock timeout; another run in progress?")
         sys.exit(0)
@@ -244,8 +247,10 @@ def main():
              open(invalid_jsonl, "w", encoding="utf-8") as fi:
 
             cw = csv.writer(fc)
-            cw.writerow(["ns","workload","mode_effective","modes","end_date","days_left",
-                         "requesters","reasons","patchers","sources_count","last_updated_at"])
+            cw.writerow([
+                "ns","workload","mode_effective","modes","end_date","days_left",
+                "requesters","reasons","patchers","sources_count","last_updated_at"
+            ])
 
             # flush invalids from parsing stage
             for inv in invalid_records:
@@ -296,47 +301,62 @@ def main():
                 ])
                 valid_count += 1
 
-                # digest row for humans
+                # digest row for humans (THÊM reasons + tag)
                 digest_rows.append({
                     "ns": ns,
                     "workload": wl,
                     "mode": mode_human(mode_eff),
                     "end": end_d.isoformat(),
                     "days_left": dl,
+                    "reasons": ";".join(record["reasons"]),
                     "requesters": ";".join(record["requesters"]),
-                    "owners": ";".join(record["patchers"]),
+                    "patchers": ";".join(record["patchers"]),
+                    "tag": "⚠️" if dl <= 3 else ""
                 })
 
         # ---- DIGEST OUTPUTS (human-friendly) ----
         digest_rows.sort(key=lambda r: (r["days_left"], r["ns"].lower(), r["workload"].lower()))
 
+        # CSV (có Tag)
         with open(digest_csv, "w", newline="", encoding="utf-8") as fdc:
             w = csv.writer(fdc)
-            w.writerow(["NS","Workload","Mode","End","D-left","Requester(s)","Owner(s)"])
+            w.writerow(["NS","Workload","Mode","End","D-left","Tag","Reason(s)","Requester(s)","Patcher(s)"])
             for r in digest_rows:
-                w.writerow([r["ns"], r["workload"], r["mode"], r["end"], r["days_left"], r["requesters"], r["owners"]])
+                w.writerow([
+                    r["ns"], r["workload"], r["mode"], r["end"],
+                    r["days_left"], r["tag"], r["reasons"], r["requesters"], r["patchers"]
+                ])
 
+        # Webex Markdown (có Tag)
         with open(digest_md, "w", encoding="utf-8") as fdm:
-            fdm.write("| NS | Workload | Mode | End | D-left | Requester(s) | Owner(s) |\n")
-            fdm.write("| --- | --- | --- | --- | ---: | --- | --- |\n")
+            fdm.write("| NS | Workload | Mode | End | D-left | Tag | Reason(s) | Requester(s) | Patcher(s) |\n")
+            fdm.write("| --- | --- | --- | --- | ---: | :-: | --- | --- | --- |\n")
             for r in digest_rows:
-                mark = " ⚠️" if r["days_left"] <= 3 else ""
-                fdm.write(f"| {r['ns']} | {r['workload']} | {r['mode']} | {r['end']}{mark} | {r['days_left']} | {r['requesters']} | {r['owners']} |\n")
+                fdm.write(
+                    f"| {r['ns']} | {r['workload']} | {r['mode']} | {r['end']} | {r['days_left']} | {r['tag']} | "
+                    f"{r['reasons']} | {r['requesters']} | {r['patchers']} |\n"
+                )
 
+        # HTML (có Tag + highlight hàng hot)
         with open(digest_html, "w", encoding="utf-8") as fdh:
             fdh.write("<!doctype html><meta charset='utf-8'>\n")
             fdh.write("<style>table{border-collapse:collapse;font:14px sans-serif} th,td{border:1px solid #ddd;padding:6px 8px} th{background:#f6f6f6} .hot{background:#fff3cd}</style>\n")
-            fdh.write("<table><thead><tr><th>NS</th><th>Workload</th><th>Mode</th><th>End</th><th style='text-align:right'>D-left</th><th>Requester(s)</th><th>Owner(s)</th></tr></thead><tbody>\n")
+            fdh.write("<table><thead><tr>"
+                      "<th>NS</th><th>Workload</th><th>Mode</th><th>End</th>"
+                      "<th style='text-align:right'>D-left</th><th>Tag</th><th>Reason(s)</th><th>Requester(s)</th><th>Patcher(s)</th>"
+                      "</tr></thead><tbody>\n")
             for r in digest_rows:
-                cls = " class='hot'" if r["days_left"] <= 3 else ""
+                cls = " class='hot'" if r["tag"] == "⚠️" else ""
                 fdh.write(
                     f"<tr{cls}><td>{esc_html(r['ns'])}</td>"
                     f"<td>{esc_html(r['workload'])}</td>"
                     f"<td>{esc_html(r['mode'])}</td>"
                     f"<td>{esc_html(r['end'])}</td>"
                     f"<td style='text-align:right'>{r['days_left']}</td>"
+                    f"<td style='text-align:center'>{esc_html(r['tag'])}</td>"
+                    f"<td>{esc_html(r['reasons'])}</td>"
                     f"<td>{esc_html(r['requesters'])}</td>"
-                    f"<td>{esc_html(r['owners'])}</td></tr>\n"
+                    f"<td>{esc_html(r['patchers'])}</td></tr>\n"
                 )
             fdh.write("</tbody></table>\n")
 
@@ -368,8 +388,10 @@ def main():
         print(f"📤 Email:   {digest_html}")
 
     finally:
-        try: os.rmdir(lock_dir)
-        except Exception: pass
+        try:
+            os.rmdir(lock_dir)
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     main()

@@ -2,15 +2,19 @@ pipeline {
   agent { label 'local-agent' }
 
   options {
-    timeout(time: 15, unit: 'MINUTES')
+    timeout(time: 45, unit: 'MINUTES')
     disableConcurrentBuilds()     // tránh race trên state-file
     buildDiscarder(logRotator(daysToKeepStr: '14', numToKeepStr: '50'))
   }
 
   // chạy 5' 1 lần; script sẽ tự quyết "noop" nếu không trúng mốc
-  triggers { cron('H/5 * * * *') }
-
+  triggers { cron('H/10 * * * *') }
+  parameters {
+    choice choices: ['auto', 'weekday_prestart', 'weekday_enter_out', 'weekend_pre', 'weekend_close'], name: 'SCALE_ACTION'
+  }
   environment {
+
+    SCALE_ACTION = "${params.SCALE_ACTION}"
     TZ                  = 'Asia/Bangkok'
 
     // IO paths
@@ -18,23 +22,23 @@ pipeline {
     STATE_ROOT          = '/tmp/exceptions/state'
 
     // Config files (đặt cạnh Jenkinsfile)
-    MANAGED_NS_FILE     = 'managed-ns.txt'
-    DENY_NS_FILE        = 'deny-ns.txt'           // optional
-    HOLIDAYS_FILE       = 'holidays.txt'
+    MANAGED_NS_FILE     = 'exception-ontime/managed-ns.txt'
+    DENY_NS_FILE        = 'exception-ontime/deny-ns.txt'           // optional
+    HOLIDAYS_FILE       = 'exception-ontime/holidays.txt'
     HOLIDAY_MODE        = 'hard_off'              // theo chốt
 
     // Scaler behavior
     TARGET_DOWN         = '0'
     DEFAULT_UP          = '1'
     DOWN_HPA_HANDLING   = 'force'                  // skip hạ HPA để tránh kéo ngược
-    JITTER_MAX_S        = '60'
+    // JITTER_MAX_S        = '60'
     HYST_MIN            = '3'
 
     // Compute Active
     MAX_DAYS            = '60'
 
     // Debug
-    DEBUG               = '0'
+    DEBUG               = '1'
   }
 
   stages {
@@ -74,6 +78,7 @@ pipeline {
           else
             echo "ℹ️  ${OUT_DIR}/polished_exceptions.jsonl chưa có; bỏ qua compute-active (scaler sẽ vẫn chạy AUTO và có thể noop)."
           fi
+          cat /tmp/exceptions/out/active_exceptions.md
         '''
       }
     }
@@ -86,8 +91,8 @@ pipeline {
           sh '''
             set -e
             export KUBECONFIG="${KUBECONFIG_FILE}"
-
-            ACTION="auto" \
+            ACTION="${SCALE_ACTION}" \
+            DRY_RUN="false" \
             MANAGED_NS_FILE="${MANAGED_NS_FILE}" \
             DENY_NS_FILE="${DENY_NS_FILE}" \
             HOLIDAYS_FILE="${HOLIDAYS_FILE}" \
@@ -103,12 +108,12 @@ pipeline {
       }
     }
 
-    stage('Archive Outputs') {
-      steps {
-        sh 'ls -lah ${OUT_DIR} || true'
-        archiveArtifacts artifacts: '*/active_exceptions.*', fingerprint: true, onlyIfSuccessful: false
-        archiveArtifacts artifacts: '*/polished_exceptions.*', fingerprint: true, onlyIfSuccessful: false
-      }
-    }
+    // stage('Archive Outputs') {
+    //   steps {
+    //     sh 'ls -lah ${OUT_DIR} || true'
+    //     archiveArtifacts artifacts: '*/active_exceptions.*', fingerprint: true, onlyIfSuccessful: false
+    //     archiveArtifacts artifacts: '*/polished_exceptions.*', fingerprint: true, onlyIfSuccessful: false
+    //   }
+    // }
   }
 }
