@@ -9,41 +9,51 @@ pipeline {
     buildDiscarder(logRotator(daysToKeepStr: '90', numToKeepStr: '1000'))
   }
 
-  // Chỉ còn payload là tham số người chạy được nhập
   parameters {
+
+    booleanParam defaultValue: false, name: 'EXEC_ON_247', description: 'Bật 24/7. Trừ ngày nghỉ lễ như Tết, 2/9 ...'
+    booleanParam defaultValue: true, name: 'EXEC_ON_OUT', description: 'Bật ngoài giờ. Ngày thường bật đến 22h, T7-CN bật ừ 9h-20h'
+    string name: 'EXEC_REQUESTER', description: 'Nhập thông tin người đưa ra yêu cầu (Bắt buộc). Ví dụ: xuan.na, anh.vtq'
+    string name: 'EXEC_REASON', description: 'Nhập lý do (Bắt buộc). Ví dụ: test game KOL ...'
+    string name: 'EXEC_END_DATE', description: 'Nhập ngày kết thúc YYYY-MM-DD (Tối đa 2 tháng, kể từ ngày đăng ký)'
+    
+    text  name: 'EXEC_WORKLOAD_LIST', defaultValue: '''sb-check | multitool
+sb-backend | workloadA''',
+    description: '''
+- Nhập theo định dạng như ví dụ, <namespace> | <tên workload>, phân cách bởi dấu |
+- Cần upload kubeconfig copy từ rancher để xác thực
+    '''
+    base64File 'USER_KUBECONFIG'
+
+
+
     text(name: 'EXC_PAYLOAD', 
     description: 'Khai báo đăng ký workload ngoài giờ như mẫu',
     defaultValue: '''annotations:
   on-exeption-247: false
   on-exeption-out-worktime: true
-  on-exeption-requester: 'PM someone'
-  on-exeption-reason: 'test ebank'
-  on-exeption-endtime: 20250923
+  on-exeption-requester: 'Người đưa ra yêu cầu'
+  on-exeption-reason: 'lý do yêu cầu bật ngoài giờ'
+  on-exeption-endtime: '2025-09-23'
 workload-list: |-
-  sb-vhht-dev | workloadA
-  sb-vhht-test | workloadB
-  sb-vhht-test | workloadC''')
+  sb-check | multitool''')
 
   }
 
   environment {
-    // CHỐT bằng env để user không chỉnh được
     RAW_ROOT = '/tmp/exceptions/raw'
-    RETAIN_DAYS = '90'
-    // 0 = xoá thật, 1 = dry-run (đổi sang 1 khi cần soi trước)
+    RETAIN_DAYS = '60'
     RETENTION_DRY_RUN = '0'
 
-    K8S_KCFG_ID = 'local.backend-gke-dc1-dev-usrcl'
-    webexBotToken = credentials('webexBOT_VHHT') // chưa dùng ở step 1
+    KCFG_DIR  = "${WORKSPACE}/.kcfg-${env.BUILD_TAG}"
+    KCFG_FILE = "${WORKSPACE}/.kcfg-${env.BUILD_TAG}/config"    
+
     HTTPS_PROXY = 'http://dc2-proxyuat.seauat.com.vn:8080'
     NO_PROXY = 'localhost,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.seabank.com.vn,.seauat.com.vn,connectgateway.googleapis.com,199.36.153.8/30'
     TZ = 'Asia/Bangkok'
   }
 
   stages {
-    stage('Checkout') {
-      steps { checkout scm }
-    }
 
     stage('Preflight') {
       steps {
@@ -69,7 +79,7 @@ workload-list: |-
 
         // Check payload + chuẩn bị thư mục như cũ
         sh '''
-          set -e
+          set -e; set +x
           # payload không được để placeholder
           if [ -z "${EXC_PAYLOAD}" ] || [ "${EXC_PAYLOAD}" = "Dữ liệu cần được vào đúng format đã phổ biến" ]; then
             echo "❌ EXC_PAYLOAD rỗng/placeholder"; exit 1
@@ -84,12 +94,23 @@ workload-list: |-
       steps {
         script {
           sh '''
-            set -e
+            set -e; set +x
             # chạy validator: fail fast nếu sai
             EXC_PAYLOAD="${EXC_PAYLOAD}" \
             python3.9 exception-ontime/validate-exception-payload.py
           '''
         }
+      }
+    }
+
+    stage('Example') {
+      steps {
+        withFileParameter('USER_KUBECONFIG') {
+          sh '''stat $USER_KUBECONFIG
+          kubectl get no --kubeconfig $USER_KUBECONFIG
+          '''
+        }
+
       }
     }
 
@@ -112,21 +133,22 @@ workload-list: |-
     }
 
 
-    stage('Execute') {
-      steps {
-        wrap([$class: 'BuildUser']) {
-          sh '''
-            python3.9 exception-ontime/build-exception-draft.py
-          '''
-        }
+    // stage('Execute') {
+    //   steps {
+    //     wrap([$class: 'BuildUser']) {
+    //       sh '''
+    //         python3.9 exception-ontime/build-exception-draft.py
+    //       '''
+    //     }
         
-      }
-    }
+    //   }
+    // }
 
   }
 
   post {
-    success { echo '✅ Step 1 OK: Draft đã publish vào RAW_ROOT và lưu artifacts.' }
+    success { echo '✅ Đã đăng ký thành công workload OT. 17h và 17h30 hàng ngày sẽ gửi thông báo danh sách' }
     failure { echo '❌ Step 1 FAIL: kiểm tra log parse YAML / quyền ghi RAW_ROOT / path script.' }
   }
+  
 }

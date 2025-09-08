@@ -45,9 +45,9 @@ DOWN_HPA_HANDLING = os.environ.get("DOWN_HPA_HANDLING", "skip").lower()  # skip 
 
 # Jitter
 _compat_j = os.environ.get("JITTER_MAX_S")
-JITTER_UP_BULK_S   = int(os.environ.get("JITTER_UP_BULK_S", _compat_j or "15"))  # weekday_prestart
-JITTER_UP_EXC_S    = int(os.environ.get("JITTER_UP_EXC_S", "5"))                 # weekend_pre / up theo exception
-JITTER_DOWN_S      = int(os.environ.get("JITTER_DOWN_S", "2"))                   # mọi down
+JITTER_UP_BULK_S   = int(os.environ.get("JITTER_UP_BULK_S", _compat_j or "5"))  # weekday_prestart
+JITTER_UP_EXC_S    = int(os.environ.get("JITTER_UP_EXC_S", "2"))                 # weekend_pre / up theo exception
+JITTER_DOWN_S      = int(os.environ.get("JITTER_DOWN_S", "1"))                   # mọi down
 HYST_MIN           = int(os.environ.get("HYST_MIN", "3"))                        # phút ± cạnh mốc giờ
 
 KUBECTL_TIMEOUT    = os.environ.get("KUBECTL_TIMEOUT", "10s")
