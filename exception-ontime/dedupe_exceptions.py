@@ -6,7 +6,7 @@ Deduplicate exception registrations -> polished machine-friendly + human digest.
 Inputs (env):
   RAW_ROOT        = /data/exceptions/raw
   OUT_DIR         = /data/exceptions/out
-  LOOKBACK_DAYS   = 90
+  LOOKBACK_DAYS   = 60
   MAX_DAYS        = 60
   TODAY           = YYYY-MM-DD (optional override)
   DEBUG           = 0/1
@@ -28,7 +28,7 @@ from collections import defaultdict
 # ---------- Config via env ----------
 RAW_ROOT       = os.environ.get("RAW_ROOT", "/data/exceptions/raw")
 OUT_DIR        = os.environ.get("OUT_DIR", "/data/exceptions/out")
-LOOKBACK_DAYS  = int(os.environ.get("LOOKBACK_DAYS", "90"))
+LOOKBACK_DAYS  = int(os.environ.get("LOOKBACK_DAYS", "60"))
 MAX_DAYS       = int(os.environ.get("MAX_DAYS", "60"))
 TODAY_OVERRIDE = os.environ.get("TODAY", "").strip()  # e.g., 2025-09-05
 
