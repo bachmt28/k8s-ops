@@ -17,36 +17,32 @@ pipeline {
     string name: 'EXEC_REASON', description: 'Nhập lý do (Bắt buộc). Ví dụ: test game KOL ...'
     string name: 'EXEC_END_DATE', description: 'Nhập ngày kết thúc YYYY-MM-DD (Tối đa 2 tháng, kể từ ngày đăng ký)'
     
-    text  name: 'EXEC_WORKLOAD_LIST', defaultValue: '''sb-check | multitool
-sb-backend | workloadA''',
+    text  name: 'EXEC_WORKLOAD_LIST',
     description: '''
 - Nhập theo định dạng như ví dụ, <namespace> | <tên workload>, phân cách bởi dấu |
-- Cần upload kubeconfig copy từ rancher để xác thực
+- Nếu muốn exception toàn bộ workload trong namespace thì nhập <namespace> | all-of-workloads
+- Ví dụ:
+sb-example-namespace-1 | workloadA
+sb-example-namespace-2 | workloadB
+sb-example-namespace-3 | all-of-workloads
+- CHÚ Ý: Cần upload USER_KUBECONFIG download về từ rancher để xác thực
     '''
     base64File 'USER_KUBECONFIG'
-
-
-
-    text(name: 'EXC_PAYLOAD', 
-    description: 'Khai báo đăng ký workload ngoài giờ như mẫu',
-    defaultValue: '''annotations:
-  on-exeption-247: false
-  on-exeption-out-worktime: true
-  on-exeption-requester: 'Người đưa ra yêu cầu'
-  on-exeption-reason: 'lý do yêu cầu bật ngoài giờ'
-  on-exeption-endtime: '2025-09-23'
-workload-list: |-
-  sb-check | multitool''')
 
   }
 
   environment {
+    EXEC_ON_247        = "${params.EXEC_ON_247}"
+    EXEC_ON_OUT        = "${params.EXEC_ON_OUT}"
+    EXEC_REQUESTER     = "${params.EXEC_REQUESTER}"
+    EXEC_REASON        = "${params.EXEC_REASON}"
+    EXEC_END_DATE      = "${params.EXEC_END_DATE}"
+    EXEC_WORKLOAD_LIST = "${params.EXEC_WORKLOAD_LIST}"
+    MAX_DAYS_ALLOWED   = "60"
     RAW_ROOT = '/tmp/exceptions/raw'
     RETAIN_DAYS = '60'
     RETENTION_DRY_RUN = '0'
-
-    KCFG_DIR  = "${WORKSPACE}/.kcfg-${env.BUILD_TAG}"
-    KCFG_FILE = "${WORKSPACE}/.kcfg-${env.BUILD_TAG}/config"    
+    DEBUG=0
 
     HTTPS_PROXY = 'http://dc2-proxyuat.seauat.com.vn:8080'
     NO_PROXY = 'localhost,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.seabank.com.vn,.seauat.com.vn,connectgateway.googleapis.com,199.36.153.8/30'
@@ -60,89 +56,87 @@ workload-list: |-
         // Lấy user bấm Run và gắn vào tên build
         wrap([$class: 'BuildUser']) {
           script {
-            def who = env.BUILD_USER_ID ?: env.BUILD_USER ?: 'unknown'
-            // cố lấy requester từ payload cho dễ nhận diện
-            def req = null
-            def m = (params?.EXC_PAYLOAD ?: '') =~ /on-exeption-requester:\s*['"]?([^\n'"]+)/           
-            if (m.find()) { req = m.group(1).trim() }
+            // 1) Xác định người chạy job
+            def who = (env.BUILD_USER_ID ?: env.BUILD_USER ?: 'unknown') as String
 
-            // cố lấy reason từ payload cho dễ nhận diện
-            def reason = null
-            def n = (params?.EXC_PAYLOAD ?: '') =~ /on-exeption-reason:\s*['"]?([^\n'"]+)/           
-            if (n.find()) { reason = n.group(1).trim() }
+            // 2) Lấy requester / reason từ params thay vì từ payload
+            //    (chuẩn spec mới: EXEC_REQUESTER, EXEC_REASON)
+            def req    = (params?.EXEC_REQUESTER ?: '').toString().trim()
+            def reason = (params?.EXEC_REASON    ?: '').toString().trim()
 
-            currentBuild.displayName = "#${env.BUILD_NUMBER} · ${who}" + (req ? " · ${req}" : "")
-            // mô tả ngắn gọn (tránh đụng script-approval)
-            currentBuild.description = (req ? " · requested from ${req}" : "") + (reason ? " · reason is ${reason}" : "")
+            // 3) Build displayName/description gọn, tránh đụng script-approval
+            def dn = "#${env.BUILD_NUMBER} · ${who}"
+            if (req) { dn += " · ${req}" }
+            currentBuild.displayName = dn
+
+            def desc = (req ? " · requested from ${req}" : "") + (reason ? " · reason is ${reason}" : "")
+            currentBuild.description = desc
           }
         }
 
-        // Check payload + chuẩn bị thư mục như cũ
+        // 4) Kiểm tra ENV/params bắt buộc & chuẩn bị thư mục
         sh '''
-          set -e; set +x
-          # payload không được để placeholder
-          if [ -z "${EXC_PAYLOAD}" ] || [ "${EXC_PAYLOAD}" = "Dữ liệu cần được vào đúng format đã phổ biến" ]; then
-            echo "❌ EXC_PAYLOAD rỗng/placeholder"; exit 1
+          set -euo pipefail; set +x
+
+          # Biến bắt buộc theo spec ENV
+          : "${RAW_ROOT:?❌ RAW_ROOT chưa được set}"
+          : "${EXEC_REQUESTER:?❌ EXEC_REQUESTER chưa được set}"
+          : "${EXEC_REASON:?❌ EXEC_REASON chưa được set}"
+          : "${EXEC_END_DATE:?❌ EXEC_END_DATE chưa được set}"
+
+          # Nếu dùng cờ boolean, chấp nhận rỗng -> mặc định false
+          EXEC_ON_247="${EXEC_ON_247:-false}"
+          EXEC_ON_OUT="${EXEC_ON_OUT:-true}"
+
+          # Kiểm tra endtime đúng định dạng (YYYYMMDD hoặc YYYY-MM-DD)
+          if ! printf '%s' "$EXEC_END_DATE" | grep -Eq '^[0-9]{8}$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+            echo "❌ EXEC_END_DATE sai định dạng, cần YYYYMMDD hoặc YYYY-MM-DD: $EXEC_END_DATE"
+            exit 1
           fi
+
+          # Tạo RAW_ROOT nếu chưa có
           mkdir -p "${RAW_ROOT}"
+          echo "✅ Preflight OK • requester=${EXEC_REQUESTER} • reason=${EXEC_REASON} • endtime=${EXEC_END_DATE} • on247=${EXEC_ON_247} • onOut=${EXEC_ON_OUT}"
         '''
       }
     }
 
 
-    stage('Validate Payload') {
+
+    stage('Validate Input') {
       steps {
         script {
           sh '''
-            set -e; set +x
-            # chạy validator: fail fast nếu sai
-            EXC_PAYLOAD="${EXC_PAYLOAD}" \
-            python3.9 exception-ontime/validate-exception-payload.py
+            set -euo pipefail; set +x
+            python3.9 exception-ontime/scripts/validate-exception-payload.py
           '''
         }
       }
     }
 
-    stage('Example') {
-      steps {
-        withFileParameter('USER_KUBECONFIG') {
-          sh '''stat $USER_KUBECONFIG
-          kubectl get no --kubeconfig $USER_KUBECONFIG
-          '''
-        }
-
-      }
-    }
-
-    stage('RBAC Check') {
+    stage('Check Authoriztion ? ') {
       steps {
         // Bind secret file theo credentialsId cố định (scope folder)
-        withCredentials([file(credentialsId: env.K8S_KCFG_ID, variable: 'KUBECONFIG_FILE')]) {
+        withFileParameter('USER_KUBECONFIG') {
           sh '''
-            set -e
-            # Không cần kiểm tra tồn tại vì withCredentials sẽ fail sớm nếu ID sai/không có quyền
-            EXC_PAYLOAD="${EXC_PAYLOAD}" \
-            KUBECONFIG_FILE="${KUBECONFIG_FILE}" \
-            KUBE_CONTEXT="${KUBE_CONTEXT}" \
-            STRICT_PATCH="${STRICT_PATCH:-0}" \
-            DEBUG="${DEBUG:-0}" \
-            python3 exception-ontime/validate-kube-auth.py
+            set -euo pipefail; set +x
+            KUBECONFIG_FILE="${USER_KUBECONFIG}" \
+            python3 exception-ontime/scripts/validate-kube-auth.py
           '''
         }
       }
     }
 
 
-    // stage('Execute') {
-    //   steps {
-    //     wrap([$class: 'BuildUser']) {
-    //       sh '''
-    //         python3.9 exception-ontime/build-exception-draft.py
-    //       '''
-    //     }
-        
-    //   }
-    // }
+    stage('Regist Workload for OT') {
+      steps {
+        wrap([$class: 'BuildUser']) {
+          sh '''
+            python3.9 exception-ontime/scripts/build-exception-draft.py
+          '''
+        }
+      }
+    }
 
   }
 
