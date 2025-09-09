@@ -267,38 +267,42 @@ def _parse_date_safe(s):
     except Exception:
         return None
 
-def exception_mode_for(ns: str, name: str, active_map: Dict[str,dict]) -> str:
+def exception_mode_for(ns: str, name: str, active_map: Dict[str,dict], today: datetime.date = None) -> str:
     """
-    Trả về 'none' | 'out_worktime' | '247' theo nguyên tắc:
-      - Có cả cụ thể (ns|name) và ALL (ns|_ALL_ hoặc ns|__ALL__):
-          * nếu end_date_specific > end_date_all  -> chọn CỤ THỂ
-          * ngược lại (<= hoặc bằng)              -> chọn ALL
-      - Chỉ có 1 trong 2 → chọn cái có
-      - Nếu thiếu end_date ở một bên → bên còn lại có end_date sẽ ưu tiên
-      - Nếu cả hai thiếu end_date → chọn ALL
+    Trả về 'none' | 'out_worktime' | '247' theo thời điểm hiện tại:
+      - Xét 2 nguồn: cụ thể (ns|name) và ALL (ns|_ALL_, ns|__ALL__, ns|ALL, ns|*).
+      - Chỉ tính các record còn hiệu lực (end_date >= today).
+      - Nếu 1 trong 2 nguồn đang hiệu lực có mode '247' → trả '247'.
+      - Nếu không có '247' nhưng có 'out_worktime' → trả 'out_worktime'.
+      - Nếu cả hai đã hết hạn → 'none'.
+    => Đảm bảo: khi ALL(247) còn hiệu lực, workload cụ thể sẽ chạy 247; hết hạn ALL mới rơi về cụ thể/outtime.
     """
+    if today is None:
+        today = local_now().date()
+
     spec = active_map.get(f"{ns}|{name}")
-    # Hỗ trợ cả hai biến thể khoá ALL
-    glob = active_map.get(f"{ns}|_ALL_") or active_map.get(f"{ns}|__ALL__")
+    glob = (active_map.get(f"{ns}|_ALL_")
+            or active_map.get(f"{ns}|__ALL__")
+            or active_map.get(f"{ns}|ALL")
+            or active_map.get(f"{ns}|*"))
 
-    if spec and not glob:
-        return spec.get("mode", "none")
-    if glob and not spec:
-        return glob.get("mode", "none")
-    if not spec and not glob:
-        return "none"
+    def active_mode(rec):
+        if not rec:
+            return None
+        ed = _parse_date_safe(rec.get("end_date"))
+        if not ed or ed < today:
+            return None
+        m = (rec.get("mode") or "").strip()
+        return m if m in ("247","out_worktime") else None
 
-    ds = _parse_date_safe(spec.get("end_date"))
-    dg = _parse_date_safe(glob.get("end_date"))
+    modes = [m for m in (active_mode(spec), active_mode(glob)) if m]
 
-    if ds and dg:
-        return spec.get("mode","none") if ds > dg else glob.get("mode","none")
-    elif ds and not dg:
-        return spec.get("mode","none")
-    elif dg and not ds:
-        return glob.get("mode","none")
-    else:
-        return glob.get("mode","none")
+    if "247" in modes:
+        return "247"
+    if "out_worktime" in modes:
+        return "out_worktime"
+    return "none"
+
 
 # -------- Decisions --------
 def should_up_in_weekday_prestart() -> bool:
@@ -327,19 +331,20 @@ def main():
     act = ACTION
     if act == "auto":
         if is_weekend(now):
-            if near_edge(now) and between(now,"08:45","09:05"):
+            if between(now, "08:45", "09:05"):
                 act = "weekend_pre"
-            elif near_edge(now) and between(now,"19:55","20:05"):
+            elif between(now, "19:55", "20:05"):
                 act = "weekend_close"
             else:
                 act = "noop"
         else:
-            if near_edge(now) and between(now,"07:10","08:05"):
+            if between(now, "07:10", "08:05"):
                 act = "weekday_prestart"
-            elif near_edge(now) and between(now,"17:55","18:05"):
+            elif between(now, "17:55", "18:05"):
                 act = "weekday_enter_out"
             else:
                 act = "noop"
+
 
     print(f"⏱️  now={now} TZ={TZ} action={act} holiday={is_holiday} DRY_RUN={int(DRY_RUN)}")
 

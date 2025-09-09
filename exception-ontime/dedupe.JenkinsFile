@@ -54,7 +54,7 @@ pipeline {
     stage('Dedupe & Publish') {
       steps {
         sh '''
-          python3.9 exception-ontime/dedupe_exceptions.py
+          python3.9 exception-ontime/scripts/dedupe_exceptions.py
           cat /tmp/exceptions/out/digest_exceptions.webex.md
         '''
       }

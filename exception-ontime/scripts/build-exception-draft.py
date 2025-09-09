@@ -273,11 +273,10 @@ def main():
     dbg(f" - {out_raw_csv}")
     dbg(f" - {meta_path}")
     try:
-        print("\n=== Content of", out_raw_csv, "===\n")
+        print("\n=== Nội dung dữ liệu đã được ghi nhận "===\n")
         with open(out_raw_csv, "r", encoding="utf-8") as f:
             for line in f:
                 print(line.rstrip())
-        print("=== End of", out_raw_csv, "===\n")
     except Exception as e:
         print(f"⚠️  Không đọc được {out_raw_csv}: {e}")
 if __name__ == "__main__":

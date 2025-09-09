@@ -140,7 +140,7 @@ def main():
             for p in raw_files[:20]:
                 print(f"        - {p}")
 
-        groups = {}      # key -> aggregate
+        groups = {}      # key -> aggregate (per ns|workload only, NO overlay)
         sources = defaultdict(list)   # key -> list
         invalid_records = []
         reason_counts = defaultdict(int)
@@ -289,7 +289,12 @@ def main():
                 }
 
                 if not (0 <= dl <= MAX_DAYS):
-                    fi.write(json.dumps({**record, "reason":"all_outside_window"}, ensure_ascii=False) + "\n")
+                    inv = {**record, "reason":"all_outside_window"}
+                    try:
+                        inv["latest_end"] = max(g["all_dates"]).isoformat() if g["all_dates"] else None
+                    except Exception:
+                        pass
+                    fi.write(json.dumps(inv, ensure_ascii=False) + "\n")
                     continue
 
                 # machine-friendly
@@ -301,7 +306,7 @@ def main():
                 ])
                 valid_count += 1
 
-                # digest row for humans (THÊM reasons + tag)
+                # digest row for humans
                 digest_rows.append({
                     "ns": ns,
                     "workload": wl,
@@ -317,7 +322,7 @@ def main():
         # ---- DIGEST OUTPUTS (human-friendly) ----
         digest_rows.sort(key=lambda r: (r["days_left"], r["ns"].lower(), r["workload"].lower()))
 
-        # CSV (có Tag)
+        # CSV
         with open(digest_csv, "w", newline="", encoding="utf-8") as fdc:
             w = csv.writer(fdc)
             w.writerow(["NS","Workload","Mode","End","D-left","Tag","Reason(s)","Requester(s)","Patcher(s)"])
@@ -327,7 +332,7 @@ def main():
                     r["days_left"], r["tag"], r["reasons"], r["requesters"], r["patchers"]
                 ])
 
-        # Webex Markdown (có Tag)
+        # Webex Markdown
         with open(digest_md, "w", encoding="utf-8") as fdm:
             fdm.write("| NS | Workload | Mode | End | D-left | Tag | Reason(s) | Requester(s) | Patcher(s) |\n")
             fdm.write("| --- | --- | --- | --- | ---: | :-: | --- | --- | --- |\n")
@@ -337,7 +342,7 @@ def main():
                     f"{r['reasons']} | {r['requesters']} | {r['patchers']} |\n"
                 )
 
-        # HTML (có Tag + highlight hàng hot)
+        # HTML
         with open(digest_html, "w", encoding="utf-8") as fdh:
             fdh.write("<!doctype html><meta charset='utf-8'>\n")
             fdh.write("<style>table{border-collapse:collapse;font:14px sans-serif} th,td{border:1px solid #ddd;padding:6px 8px} th{background:#f6f6f6} .hot{background:#fff3cd}</style>\n")
