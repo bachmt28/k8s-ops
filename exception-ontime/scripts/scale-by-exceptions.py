@@ -8,20 +8,21 @@ Jitter refactor:
 - UP theo exception (weekend_pre, v.v.): 0..5s
 - DOWN (enter_out, weekend_close, etc.): 0..2s
 
-Các tính năng khác (như trước):
-- ACTION=auto quyết định cửa sổ chạy theo giờ VN
+Các tính năng:
+- ACTION=auto quyết định cửa sổ chạy theo giờ VN (TZ)
 - Holiday (HOLIDAY_MODE=hard_off): DOWN tất cả
-- Ưu tiên exception: cụ thể vs ALL (ví dụ _ALL_) theo end_date (cụ thể > ALL nếu end_date muộn hơn)
+- Ưu tiên 247, xét hiệu lực theo end_date, hỗ trợ ALL: _ALL_, __ALL__, ALL, *
 - Hỗ trợ HPA minReplicas khi UP, lưu prev_replicas khi DOWN
 - KUBECTL_TIMEOUT cho mọi lệnh kubectl
 - MAX_ACTIONS_PER_RUN để cắt nhỏ batch mỗi tick
+- Quyết định action sớm, nếu NOOP thì exit 0 (không gọi kubectl)
 
-- Quyết định action sớm, nếu NOOP thì exit 0 (không gọi kubectl).
-- Jitter:
+Jitter:
   * Weekday prestart (UP hàng loạt):   0..15s
   * UP theo exception (weekend_pre...):0..5s
   * DOWN (enter_out, weekend_close...):0..2s
-- Holiday hard_off: DOWN tất cả (bỏ qua NOOP).
+
+Holiday hard_off: DOWN tất cả (bỏ qua NOOP).
 """
 
 import os, sys, json, subprocess, shlex, time, datetime, random, fcntl, re
@@ -36,7 +37,7 @@ TZ             = os.environ.get("TZ", "Asia/Bangkok")
 MANAGED_NS_FILE= os.environ.get("MANAGED_NS_FILE", "managed-ns.txt")   # regex per line
 DENY_NS_FILE   = os.environ.get("DENY_NS_FILE", "deny-ns.txt")         # optional regex per line
 HOLIDAYS_FILE  = os.environ.get("HOLIDAYS_FILE", "holidays.txt")
-HOLIDAY_MODE   = os.environ.get("HOLIDAY_MODE", "hard_off").lower()    # per spec
+HOLIDAY_MODE   = os.environ.get("HOLIDAY_MODE", "hard_off").lower()
 
 ACTION         = os.environ.get("ACTION", "auto").lower()
 TARGET_DOWN    = int(os.environ.get("TARGET_DOWN", "0"))
@@ -46,7 +47,7 @@ DOWN_HPA_HANDLING = os.environ.get("DOWN_HPA_HANDLING", "skip").lower()  # skip 
 # Jitter
 _compat_j = os.environ.get("JITTER_MAX_S")
 JITTER_UP_BULK_S   = int(os.environ.get("JITTER_UP_BULK_S", _compat_j or "5"))  # weekday_prestart
-JITTER_UP_EXC_S    = int(os.environ.get("JITTER_UP_EXC_S", "2"))                 # weekend_pre / up theo exception
+JITTER_UP_EXC_S    = int(os.environ.get("JITTER_UP_EXC_S", "2"))                 # weekend_pre / exception UP
 JITTER_DOWN_S      = int(os.environ.get("JITTER_DOWN_S", "1"))                   # mọi down
 HYST_MIN           = int(os.environ.get("HYST_MIN", "3"))                        # phút ± cạnh mốc giờ
 
@@ -83,10 +84,13 @@ def is_weekend(dt: datetime.datetime) -> bool:
     return weekday_index(dt) >= 5
 
 def near_edge(dt: datetime.datetime) -> bool:
-    """True nếu trong ±HYST_MIN phút quanh các mốc 08:00/18:00 (weekday) hoặc 09:00/20:00 (weekend)."""
+    """True nếu trong ±HYST_MIN phút quanh mốc:
+       Weekday: 07:10 & 18:00 (prestart/enter_out)
+       Weekend: 09:00 & 20:00 (pre/close)
+    """
     edges = []
     if not is_weekend(dt):
-        edges += ["08:00","18:00"]
+        edges += ["07:10","18:00"]
     else:
         edges += ["09:00","20:00"]
     for hm in edges:
@@ -260,14 +264,14 @@ def load_active_map() -> Dict[str, dict]:
             m[f"{ns}|{wl}"]=r
     return m
 
-# --- precedence: specific vs ALL ---
+# --- precedence & effective mode (refactor) ---
 def _parse_date_safe(s):
     try:
         return datetime.date.fromisoformat(str(s)[:10])
     except Exception:
         return None
 
-def exception_mode_for(ns: str, name: str, active_map: Dict[str,dict], today: datetime.date = None) -> str:
+def exception_mode_for(ns: str, name: str, active_map: Dict[str,dict], today: datetime.date=None) -> str:
     """
     Trả về 'none' | 'out_worktime' | '247' theo thời điểm hiện tại:
       - Xét 2 nguồn: cụ thể (ns|name) và ALL (ns|_ALL_, ns|__ALL__, ns|ALL, ns|*).
@@ -275,7 +279,8 @@ def exception_mode_for(ns: str, name: str, active_map: Dict[str,dict], today: da
       - Nếu 1 trong 2 nguồn đang hiệu lực có mode '247' → trả '247'.
       - Nếu không có '247' nhưng có 'out_worktime' → trả 'out_worktime'.
       - Nếu cả hai đã hết hạn → 'none'.
-    => Đảm bảo: khi ALL(247) còn hiệu lực, workload cụ thể sẽ chạy 247; hết hạn ALL mới rơi về cụ thể/outtime.
+
+    Đảm bảo: khi ALL(247) còn hiệu lực, workload cụ thể sẽ chạy 247; hết hạn ALL mới rơi về cụ thể/outtime.
     """
     if today is None:
         today = local_now().date()
@@ -303,7 +308,6 @@ def exception_mode_for(ns: str, name: str, active_map: Dict[str,dict], today: da
         return "out_worktime"
     return "none"
 
-
 # -------- Decisions --------
 def should_up_in_weekday_prestart() -> bool:
     # Weekday prestart: bật tất cả trong managed namespaces
@@ -324,27 +328,26 @@ def should_keep_up_247(mode: str) -> bool:
 # -------- Main --------
 def main():
     now = local_now()
-    today = today_iso()
-    is_holiday = (today in load_holidays())
+    today = now.date()
+    is_holiday = (today_iso() in load_holidays())
 
     # Resolve action early (no kubectl here)
     act = ACTION
     if act == "auto":
         if is_weekend(now):
-            if between(now, "08:45", "09:05"):
+            if near_edge(now) and between(now,"08:45","09:05"):
                 act = "weekend_pre"
-            elif between(now, "19:55", "20:05"):
+            elif near_edge(now) and between(now,"19:55","20:05"):
                 act = "weekend_close"
             else:
                 act = "noop"
         else:
-            if between(now, "07:10", "08:05"):
+            if near_edge(now) and between(now,"07:10","08:05"):
                 act = "weekday_prestart"
-            elif between(now, "17:55", "18:05"):
+            elif near_edge(now) and between(now,"17:55","18:05"):
                 act = "weekday_enter_out"
             else:
                 act = "noop"
-
 
     print(f"⏱️  now={now} TZ={TZ} action={act} holiday={is_holiday} DRY_RUN={int(DRY_RUN)}")
 
@@ -412,13 +415,13 @@ def main():
             if act == "weekday_prestart":
                 want_up = should_up_in_weekday_prestart()           # bulk UP
             elif act == "weekday_enter_out":
-                mode = exception_mode_for(ns, name, active)
+                mode = exception_mode_for(ns, name, active, today)
                 want_up = should_up_in_enter_out(mode)              # exception UP
             elif act == "weekend_pre":
-                mode = exception_mode_for(ns, name, active)
+                mode = exception_mode_for(ns, name, active, today)
                 want_up = should_up_in_weekend_pre(mode)            # exception UP
             elif act == "weekend_close":
-                mode = exception_mode_for(ns, name, active)
+                mode = exception_mode_for(ns, name, active, today)
                 want_up = should_keep_up_247(mode)                  # 24/7 UP
             else:
                 continue

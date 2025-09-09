@@ -109,7 +109,7 @@ pipeline {
             set -e
             export KUBECONFIG="${KUBECONFIG_FILE}"
             ACTION="${SCALE_ACTION}" \
-            DRY_RUN="false" \
+            DRY_RUN="true" \
             MANAGED_NS_FILE="${MANAGED_NS_FILE}" \
             DENY_NS_FILE="${DENY_NS_FILE}" \
             HOLIDAYS_FILE="${HOLIDAYS_FILE}" \
