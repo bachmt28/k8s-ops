@@ -141,7 +141,6 @@ def main():
                 print(f"        - {p}")
 
         groups = {}      # key -> aggregate (per ns|workload only, NO overlay)
-        sources = defaultdict(list)   # key -> list
         invalid_records = []
         reason_counts = defaultdict(int)
         total_lines = 0
@@ -188,30 +187,35 @@ def main():
                 key = f"{ns}|{wl}"
                 if key not in groups:
                     groups[key] = {
-                        "ns": ns, "workload": wl,
-                        "all_dates": [],             # all candidate end dates
-                        "modes": set(),
-                        "requesters": set(), "reasons": set(), "patchers": set(),
-                        "last_updated_at": None,
+                        "ns": ns,
+                        "workload": wl,
+                        "records": [],
                     }
-                g = groups[key]
-                if end_dt: g["all_dates"].append(end_dt)
-                if m247: g["modes"].add("247")
-                if mow:  g["modes"].add("out_worktime")
-                if requester: g["requesters"].add(requester)
-                if reason:    g["reasons"].add(reason)
-                if patcher:   g["patchers"].add(patcher)
 
-                ca = (r.get("created_at") or "").strip()
+                ca_raw = (r.get("created_at") or "").strip()
                 try:
-                    ca_dt = datetime.datetime.fromisoformat(ca.replace("Z","+00:00"))
-                    if g["last_updated_at"] is None or ca_dt > g["last_updated_at"]:
-                        g["last_updated_at"] = ca_dt
+                    ca_dt = datetime.datetime.fromisoformat(ca_raw.replace("Z", "+00:00"))
                 except Exception:
-                    pass
+                    ca_dt = None
 
-                src_id = f'{os.path.basename(path)}:{r.get("req_id","?")}#{r.get("seq","?")}'
-                sources[key].append(src_id)
+                record_modes = set()
+                if m247:
+                    record_modes.add("247")
+                if mow:
+                    record_modes.add("out_worktime")
+
+                src_id = f"{os.path.basename(path)}:{r.get('req_id','?')}#{r.get('seq','?')}"
+
+                groups[key]["records"].append({
+                    "end_dt": end_dt,
+                    "modes": record_modes,
+                    "requester": requester,
+                    "reason": reason,
+                    "patcher": patcher,
+                    "created_at": ca_dt,
+                    "created_at_raw": ca_raw or None,
+                    "source": src_id,
+                })
                 parsed_ok += 1
 
         # --- optional dump groups before filtering
@@ -221,14 +225,16 @@ def main():
                 g = groups[key]
                 if not keep_rec(g["ns"], g["workload"]):
                     continue
-                dl_list = [{"date": d.isoformat(), "days_left": days_left(d, today)} for d in g["all_dates"]]
                 print(f"  - {key}")
-                print(f"      all_dates     : {dl_list}")
-                print(f"      modes         : {sorted(g['modes'])}")
-                print(f"      requesters    : {sorted(g['requesters'])}")
-                print(f"      reasons       : {sorted(g['reasons'])}")
-                print(f"      patchers      : {sorted(g['patchers'])}")
-                print(f"      last_updated  : {g['last_updated_at']}")
+                for idx, rec in enumerate(g["records"], 1):
+                    ed = rec["end_dt"].isoformat() if rec["end_dt"] else None
+                    dl = days_left(rec["end_dt"], today) if rec["end_dt"] else None
+                    ca_repr = rec["created_at"].isoformat() if rec["created_at"] else rec.get("created_at_raw")
+                    print(
+                        f"      [{idx:>2}] end={ed} days_left={dl} modes={sorted(rec['modes'])} "
+                        f"requester={rec['requester']!r} reason={rec['reason']!r} "
+                        f"patcher={rec['patcher']!r} created_at={ca_repr} source={rec['source']}"
+                    )
 
         # write outputs
         polished_jsonl = os.path.join(OUT_DIR, "polished_exceptions.jsonl")
@@ -259,65 +265,146 @@ def main():
             for key in sorted(groups.keys(), key=lambda x: x.lower()):
                 g = groups[key]
                 ns = g["ns"]; wl = g["workload"]
-                modes = sorted(g["modes"])
 
                 if not keep_rec(ns, wl):
                     continue
 
-                if not modes:
-                    rec = {"ns":ns,"workload":wl,"reason":"no_mode"}
-                    fi.write(json.dumps(rec)+"\n")
+                records = g.get("records", [])
+                if not records:
+                    rec = {"ns": ns, "workload": wl, "reason": "no_records"}
+                    fi.write(json.dumps(rec) + "\n")
                     continue
 
-                # chọn end_date: ưu tiên max trong [0..MAX_DAYS]
-                in_window = [d for d in g["all_dates"] if d and 0 <= days_left(d, today) <= MAX_DAYS]
-                end_d = max(in_window) if in_window else (max(g["all_dates"]) if g["all_dates"] else None)
+                def records_matching(end_date, pool):
+                    return [rec for rec in pool if rec["end_dt"] == end_date]
+
+                def aggregate_for(end_date, candidates):
+                    modes_acc = set()
+                    requesters_acc = set()
+                    reasons_acc = set()
+                    patchers_acc = set()
+                    sources_acc = []
+                    seen_sources = set()
+                    last_updated_dt = None
+                    last_updated_raw = None
+
+                    for item in candidates:
+                        modes_acc.update(item["modes"])
+                        if item["requester"]:
+                            requesters_acc.add(item["requester"])
+                        if item["reason"]:
+                            reasons_acc.add(item["reason"])
+                        if item["patcher"]:
+                            patchers_acc.add(item["patcher"])
+                        if item["source"] and item["source"] not in seen_sources:
+                            sources_acc.append(item["source"])
+                            seen_sources.add(item["source"])
+                        if item["created_at"] is not None and (
+                            last_updated_dt is None or item["created_at"] > last_updated_dt
+                        ):
+                            last_updated_dt = item["created_at"]
+                            last_updated_raw = item.get("created_at_raw")
+                        elif last_updated_dt is None and item.get("created_at_raw"):
+                            # fallback to textual timestamp when datetime parsing failed
+                            raw_val = item.get("created_at_raw")
+                            if last_updated_raw is None or raw_val > last_updated_raw:
+                                last_updated_raw = raw_val
+
+                    if not modes_acc:
+                        return None
+
+                    mode_eff_val = "247" if "247" in modes_acc else "out_worktime"
+                    dl_val = days_left(end_date, today)
+                    sources_acc.sort()
+
+                    return {
+                        "ns": ns,
+                        "workload": wl,
+                        "mode_effective": mode_eff_val,
+                        "modes": sorted(modes_acc),
+                        "end_date": end_date.isoformat(),
+                        "days_left": dl_val,
+                        "requesters": sorted(requesters_acc),
+                        "reasons": sorted(reasons_acc),
+                        "patchers": sorted(patchers_acc),
+                        "sources": sources_acc,
+                        "sources_count": len(sources_acc),
+                        "last_updated_at": (
+                            last_updated_dt.isoformat()
+                            if last_updated_dt is not None
+                            else last_updated_raw
+                        ),
+                    }
+
+                valid_records = [rec for rec in records if rec["end_dt"] and 0 <= days_left(rec["end_dt"], today) <= MAX_DAYS]
+
+                if valid_records:
+                    end_d = max(rec["end_dt"] for rec in valid_records)
+                    chosen = records_matching(end_d, valid_records)
+                    record = aggregate_for(end_d, chosen)
+                    if record is None:
+                        inv = {"ns": ns, "workload": wl, "reason": "no_mode"}
+                        fi.write(json.dumps(inv) + "\n")
+                        continue
+
+                    dl = record["days_left"]
+                    if not (0 <= dl <= MAX_DAYS):
+                        inv = {**record, "reason": "all_outside_window"}
+                        try:
+                            all_dates = [rec["end_dt"] for rec in records if rec["end_dt"]]
+                            inv["latest_end"] = max(all_dates).isoformat() if all_dates else None
+                        except Exception:
+                            pass
+                        fi.write(json.dumps(inv, ensure_ascii=False) + "\n")
+                        continue
+
+                    fj.write(json.dumps(record, ensure_ascii=False) + "\n")
+                    cw.writerow([
+                        ns,
+                        wl,
+                        record["mode_effective"],
+                        ";".join(record["modes"]),
+                        record["end_date"],
+                        dl,
+                        ";".join(record["requesters"]),
+                        ";".join(record["reasons"]),
+                        ";".join(record["patchers"]),
+                        record["sources_count"],
+                        record["last_updated_at"] or "",
+                    ])
+                    valid_count += 1
+
+                    digest_rows.append({
+                        "ns": ns,
+                        "workload": wl,
+                        "mode": mode_human(record["mode_effective"]),
+                        "end": record["end_date"],
+                        "days_left": dl,
+                        "reasons": ";".join(record["reasons"]),
+                        "requesters": ";".join(record["requesters"]),
+                        "patchers": ";".join(record["patchers"]),
+                        "tag": "⚠️" if dl <= 3 else "",
+                    })
+                    continue
+
+                # No valid records inside window
+                all_dates = [rec["end_dt"] for rec in records if rec["end_dt"]]
+                end_d = max(all_dates) if all_dates else None
                 if not end_d:
-                    rec = {"ns":ns,"workload":wl,"reason":"missing_end_date"}
-                    fi.write(json.dumps(rec)+"\n")
+                    rec = {"ns": ns, "workload": wl, "reason": "missing_end_date"}
+                    fi.write(json.dumps(rec) + "\n")
                     continue
 
-                mode_eff = "247" if "247" in modes else "out_worktime"
-                dl = days_left(end_d, today)
-                record = {
-                    "ns": ns, "workload": wl, "mode_effective": mode_eff, "modes": modes,
-                    "end_date": end_d.isoformat(), "days_left": dl,
-                    "requesters": sorted(g["requesters"]), "reasons": sorted(g["reasons"]),
-                    "patchers": sorted(g["patchers"]), "sources": sources[key],
-                    "sources_count": len(sources[key]),
-                    "last_updated_at": g["last_updated_at"].isoformat() if g["last_updated_at"] else None,
-                }
-
-                if not (0 <= dl <= MAX_DAYS):
-                    inv = {**record, "reason":"all_outside_window"}
-                    try:
-                        inv["latest_end"] = max(g["all_dates"]).isoformat() if g["all_dates"] else None
-                    except Exception:
-                        pass
-                    fi.write(json.dumps(inv, ensure_ascii=False) + "\n")
+                chosen = records_matching(end_d, records)
+                record = aggregate_for(end_d, chosen)
+                if record is None:
+                    inv = {"ns": ns, "workload": wl, "reason": "no_mode"}
+                    fi.write(json.dumps(inv) + "\n")
                     continue
 
-                # machine-friendly
-                fj.write(json.dumps(record, ensure_ascii=False) + "\n")
-                cw.writerow([
-                    ns, wl, mode_eff, ";".join(modes), end_d.isoformat(), dl,
-                    ";".join(record["requesters"]), ";".join(record["reasons"]),
-                    ";".join(record["patchers"]), record["sources_count"], record["last_updated_at"] or ""
-                ])
-                valid_count += 1
-
-                # digest row for humans
-                digest_rows.append({
-                    "ns": ns,
-                    "workload": wl,
-                    "mode": mode_human(mode_eff),
-                    "end": end_d.isoformat(),
-                    "days_left": dl,
-                    "reasons": ";".join(record["reasons"]),
-                    "requesters": ";".join(record["requesters"]),
-                    "patchers": ";".join(record["patchers"]),
-                    "tag": "⚠️" if dl <= 3 else ""
-                })
+                inv = {**record, "reason": "all_outside_window"}
+                inv["latest_end"] = record["end_date"]
+                fi.write(json.dumps(inv, ensure_ascii=False) + "\n")
 
         # ---- DIGEST OUTPUTS (human-friendly) ----
         digest_rows.sort(key=lambda r: (r["days_left"], r["ns"].lower(), r["workload"].lower()))
