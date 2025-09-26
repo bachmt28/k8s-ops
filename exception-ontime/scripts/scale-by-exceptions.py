@@ -49,7 +49,6 @@ _compat_j = os.environ.get("JITTER_MAX_S")
 JITTER_UP_BULK_S   = int(os.environ.get("JITTER_UP_BULK_S", _compat_j or "5"))  # weekday_prestart
 JITTER_UP_EXC_S    = int(os.environ.get("JITTER_UP_EXC_S", "2"))                 # weekend_pre / exception UP
 JITTER_DOWN_S      = int(os.environ.get("JITTER_DOWN_S", "1"))                   # mọi down
-HYST_MIN           = int(os.environ.get("HYST_MIN", "3"))                        # phút ± cạnh mốc giờ
 
 KUBECTL_TIMEOUT    = os.environ.get("KUBECTL_TIMEOUT", "10s")
 MAX_ACTIONS_PER_RUN= int(os.environ.get("MAX_ACTIONS_PER_RUN", "0"))             # 0 = unlimited
@@ -73,33 +72,26 @@ def local_now():
 def weekday_index(dt: datetime.datetime) -> int:
     return dt.weekday()  # 0=Mon..6=Sun
 
-def between(dt: datetime.datetime, start_hm: str, end_hm: str) -> bool:
-    sh, sm = [int(x) for x in start_hm.split(":")]
-    eh, em = [int(x) for x in end_hm.split(":")]
-    s = dt.replace(hour=sh, minute=sm, second=0, microsecond=0)
-    e = dt.replace(hour=eh, minute=em, second=0, microsecond=0)
-    return s <= dt <= e
-
 def is_weekend(dt: datetime.datetime) -> bool:
     return weekday_index(dt) >= 5
 
-def near_edge(dt: datetime.datetime) -> bool:
-    """True nếu trong ±HYST_MIN phút quanh mốc:
-       Weekday: 07:10 & 18:00 (prestart/enter_out)
-       Weekend: 09:00 & 20:00 (pre/close)
-    """
-    edges = []
-    if not is_weekend(dt):
-        edges += ["07:10","18:00"]
-    else:
-        edges += ["09:00","20:00"]
-    for hm in edges:
-        hh, mm = [int(x) for x in hm.split(":")]
-        edge = dt.replace(hour=hh, minute=mm, second=0, microsecond=0)
-        delta = abs((dt - edge).total_seconds()) / 60.0
-        if delta <= HYST_MIN:
-            return True
-    return False
+def decide_action(now: datetime.datetime) -> str:
+    """Xác định action dựa trên weekday/weekend và khoảng giờ cố định."""
+    hm = now.strftime("%H:%M")
+    wd = weekday_index(now)
+
+    if wd < 5:  # Mon–Fri
+        if "07:10" <= hm <= "08:05":
+            return "weekday_prestart"
+        if "17:55" <= hm <= "18:05":
+            return "weekday_enter_out"
+    else:  # Sat–Sun
+        if "08:45" <= hm <= "09:05":
+            return "weekend_pre"
+        if "19:55" <= hm <= "20:05":
+            return "weekend_close"
+
+    return "noop"
 
 # -------- Files / state --------
 class LockedFile:
@@ -272,16 +264,6 @@ def _parse_date_safe(s):
         return None
 
 def exception_mode_for(ns: str, name: str, active_map: Dict[str,dict], today: datetime.date=None) -> str:
-    """
-    Trả về 'none' | 'out_worktime' | '247' theo thời điểm hiện tại:
-      - Xét 2 nguồn: cụ thể (ns|name) và ALL (ns|_ALL_, ns|__ALL__, ns|ALL, ns|*).
-      - Chỉ tính các record còn hiệu lực (end_date >= today).
-      - Nếu 1 trong 2 nguồn đang hiệu lực có mode '247' → trả '247'.
-      - Nếu không có '247' nhưng có 'out_worktime' → trả 'out_worktime'.
-      - Nếu cả hai đã hết hạn → 'none'.
-
-    Đảm bảo: khi ALL(247) còn hiệu lực, workload cụ thể sẽ chạy 247; hết hạn ALL mới rơi về cụ thể/outtime.
-    """
     if today is None:
         today = local_now().date()
 
@@ -310,19 +292,15 @@ def exception_mode_for(ns: str, name: str, active_map: Dict[str,dict], today: da
 
 # -------- Decisions --------
 def should_up_in_weekday_prestart() -> bool:
-    # Weekday prestart: bật tất cả trong managed namespaces
     return True
 
 def should_up_in_weekend_pre(mode: str) -> bool:
-    # Weekend pre: chỉ bật exception (247 và ngoài giờ)
     return mode in ("out_worktime","247")
 
 def should_up_in_enter_out(mode: str) -> bool:
-    # 18:00 weekday: chỉ giữ exception
     return mode in ("out_worktime","247")
 
 def should_keep_up_247(mode: str) -> bool:
-    # 20:00 weekend: chỉ giữ 24/7
     return mode == "247"
 
 # -------- Main --------
@@ -331,35 +309,18 @@ def main():
     today = now.date()
     is_holiday = (today_iso() in load_holidays())
 
-    # Resolve action early (no kubectl here)
     act = ACTION
     if act == "auto":
-        if is_weekend(now):
-            if near_edge(now) and between(now,"08:45","09:05"):
-                act = "weekend_pre"
-            elif near_edge(now) and between(now,"19:55","20:05"):
-                act = "weekend_close"
-            else:
-                act = "noop"
-        else:
-            if near_edge(now) and between(now,"07:10","08:05"):
-                act = "weekday_prestart"
-            elif near_edge(now) and between(now,"17:55","18:05"):
-                act = "weekday_enter_out"
-            else:
-                act = "noop"
+        act = decide_action(now)
 
     print(f"⏱️  now={now} TZ={TZ} action={act} holiday={is_holiday} DRY_RUN={int(DRY_RUN)}")
 
-    # Fast exit when noop (except holiday hard_off)
     if act == "noop" and not (is_holiday and HOLIDAY_MODE == "hard_off"):
         print("🛌 NOOP window → fast exit (skip kubectl).")
         sys.exit(0)
 
-    # From this point on, heavy stuff is allowed
     state = load_state()
 
-    # Holiday hard_off: down all
     if is_holiday and HOLIDAY_MODE == "hard_off":
         print("🎌 Holiday hard_off → DOWN all workloads in managed namespaces.")
         try:
@@ -390,7 +351,6 @@ def main():
         print(f"✅ Done (holiday). changed={changed}")
         sys.exit(0)
 
-    # Non-noop actions
     try:
         mns = get_managed_namespaces()
     except Exception as e:
@@ -409,20 +369,19 @@ def main():
     for ns in mns:
         hpa = hpa_index(ns)
         for kind,name in list_workloads(ns):
-            # choose up/down by act
             want_up = None
             mode = "none"
             if act == "weekday_prestart":
-                want_up = should_up_in_weekday_prestart()           # bulk UP
+                want_up = should_up_in_weekday_prestart()
             elif act == "weekday_enter_out":
                 mode = exception_mode_for(ns, name, active, today)
-                want_up = should_up_in_enter_out(mode)              # exception UP
+                want_up = should_up_in_enter_out(mode)
             elif act == "weekend_pre":
                 mode = exception_mode_for(ns, name, active, today)
-                want_up = should_up_in_weekend_pre(mode)            # exception UP
+                want_up = should_up_in_weekend_pre(mode)
             elif act == "weekend_close":
                 mode = exception_mode_for(ns, name, active, today)
-                want_up = should_keep_up_247(mode)                  # 24/7 UP
+                want_up = should_keep_up_247(mode)
             else:
                 continue
 
@@ -432,7 +391,6 @@ def main():
                 continue
 
             if want_up:
-                # compute target
                 if (kind,name) in hpa:
                     target = max(1, int(hpa[(kind,name)]))
                 else:
@@ -440,7 +398,6 @@ def main():
                     target = int(prev) if isinstance(prev,int) and prev>=1 else DEFAULT_UP
 
                 if cur == 0 and target >= 1:
-                    # jitter theo bối cảnh
                     if act == "weekday_prestart":
                         time.sleep(random.uniform(0, JITTER_UP_BULK_S))
                     else:
@@ -450,30 +407,4 @@ def main():
                         changed += 1
                         actions += 1
             else:
-                # DOWN path
-                # ⛔ weekend_pre: KHÔNG DOWN workload không thuộc exception
-                if act == "weekend_pre":
-                    continue
-
-                force_down_this_time = (act in ("weekday_enter_out","weekend_close"))
-                if (kind,name) in hpa and (not force_down_this_time) and DOWN_HPA_HANDLING == "skip":
-                    print(f"↪️  skip down {kind}/{name} -n {ns} (HPA min={hpa[(kind,name)]})")
-                    continue
-                if cur > TARGET_DOWN:
-                    state[f"{ns}|{kind}|{name}"] = {"prev_replicas": cur, "last_down": time.time()}
-                    time.sleep(random.uniform(0, JITTER_DOWN_S))
-                    if scale_to(ns, kind, name, TARGET_DOWN):
-                        changed += 1
-                        actions += 1
-
-            if MAX_ACTIONS_PER_RUN > 0 and actions >= MAX_ACTIONS_PER_RUN:
-                save_state(state)
-                print(f"⏳ Reached MAX_ACTIONS_PER_RUN={MAX_ACTIONS_PER_RUN}, partial done. changed={changed}")
-                sys.exit(0)
-
-    save_state(state)
-    print(f"✅ Done. changed={changed}")
-    sys.exit(0)
-
-if __name__ == "__main__":
-    main()
+                if act == "weekend_pre
