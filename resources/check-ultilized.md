@@ -56,44 +56,44 @@ sh check-ultilized.sh   --exclude="usrcp|base"
 
 Node                                     CPU Req         CPU Total       CPU%       Mem Req (GiB)   Mem Total       Mem%       Underutilized?
 ---------------------------------------- --------------- --------------- --------   --------------- --------------- --------   -----------------
-gke-dc1dtu-basev5-7dbbbfb8f7-dn6t8       3.43            7.84            43.7%      6.48            14.28           45.3%      Yes
-gke-dc1dtu-basev5-7dbbbfb8f7-gddn4       3.88            7.84            49.4%      5.74            14.28           40.1%      Yes
-gke-dc1dtu-basev5-7dbbbfb8f7-kfdhl       3.20            7.84            40.8%      6.90            14.28           48.3%      Yes
-gke-dc1dtu-itomv2-559bd6d476-285r7       9.71            15.76           61.6%      22.34           36.65           60.9%      No
-gke-dc1dtu-itomv2-559bd6d476-njjbj       8.53            15.76           54.1%      23.14           36.65           63.1%      No
-gke-dc1dtu-itomv2-559bd6d476-rxskj       10.81           15.76           68.5%      19.70           36.65           53.7%      No
-gke-dc1dtu-itomv2-559bd6d476-wpvb7       9.47            15.76           60.0%      19.45           36.65           53.0%      No
-gke-dc1dtu-itomv2-559bd6d476-wq776       9.03            15.76           57.2%      19.64           36.65           53.5%      No
-gke-dc1dtu-metallb-6f5b689667-cpdb2      1.05            3.88            27.0%      .71             6.81            10.4%      Yes
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-6pf87    7.65            7.84            97.5%      28.79           59.10           48.7%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-7nqks    7.35            7.84            93.7%      33.20           59.10           56.1%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-ggnf6    4.45            7.84            56.7%      19.11           59.10           32.3%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-h2g7v    7.55            7.84            96.3%      37.86           59.10           64.0%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-l8ws2    7.75            7.84            98.8%      57.30           59.10           96.9%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-qwjfk    7.55            7.84            96.3%      36.29           59.10           61.4%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-rr99d    7.65            7.84            97.5%      50.26           59.10           85.0%      No
-gke-dc1dtu-sbapiv4-78d9545465-2s4dk      23.66           23.68           99.9%      44.07           44.13           99.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-42brl      22.35           23.68           94.3%      38.33           44.13           86.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-48b85      12.25           23.68           51.7%      25.50           44.13           57.7%      No
-gke-dc1dtu-sbapiv4-78d9545465-4sdk9      23.00           23.68           97.1%      35.91           44.13           81.3%      No
-gke-dc1dtu-sbapiv4-78d9545465-5gstv      23.65           23.68           99.8%      25.62           44.13           58.0%      No
-gke-dc1dtu-sbapiv4-78d9545465-5mqsv      22.70           23.68           95.8%      38.39           44.13           86.9%      No
-gke-dc1dtu-sbapiv4-78d9545465-6jkmg      20.30           23.68           85.7%      37.45           44.13           84.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-7s8sx      23.60           23.68           99.6%      35.67           44.13           80.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-95kmk      23.05           23.68           97.3%      37.79           44.13           85.6%      No
-gke-dc1dtu-sbapiv4-78d9545465-cg2zj      21.25           23.68           89.7%      29.63           44.13           67.1%      No
-gke-dc1dtu-sbapiv4-78d9545465-d6bz7      19.56           23.68           82.6%      42.47           44.13           96.2%      No
-gke-dc1dtu-sbapiv4-78d9545465-qcmr8      21.95           23.68           92.6%      27.48           44.13           62.2%      No
-gke-dc1dtu-sbapiv4-78d9545465-rsb5j      12.40           23.68           52.3%      37.39           44.13           84.7%      No
-gke-dc1dtu-sbapiv4-78d9545465-sh2zm      22.90           23.68           96.7%      33.06           44.13           74.9%      No
-gke-dc1dtu-sbapiv4-78d9545465-zb8zr      23.40           23.68           98.8%      38.30           44.13           86.7%      No
-gke-dc1dtu-usrcp-01                      1.49            3.88            38.4%      .96             14.28           6.7%       Yes
-gke-dc1dtu-usrcp-02                      1.53            3.88            39.4%      .89             14.28           6.2%       Yes
-gke-dc1dtu-usrcp-03                      1.42            3.88            36.5%      .80             14.28           5.6%       Yes
+k8s-example-basev5-7dbbbfb8f7-dn6t8       3.43            7.84            43.7%      6.48            14.28           45.3%      Yes
+k8s-example-basev5-7dbbbfb8f7-gddn4       3.88            7.84            49.4%      5.74            14.28           40.1%      Yes
+k8s-example-basev5-7dbbbfb8f7-kfdhl       3.20            7.84            40.8%      6.90            14.28           48.3%      Yes
+k8s-example-itomv2-559bd6d476-285r7       9.71            15.76           61.6%      22.34           36.65           60.9%      No
+k8s-example-itomv2-559bd6d476-njjbj       8.53            15.76           54.1%      23.14           36.65           63.1%      No
+k8s-example-itomv2-559bd6d476-rxskj       10.81           15.76           68.5%      19.70           36.65           53.7%      No
+k8s-example-itomv2-559bd6d476-wpvb7       9.47            15.76           60.0%      19.45           36.65           53.0%      No
+k8s-example-itomv2-559bd6d476-wq776       9.03            15.76           57.2%      19.64           36.65           53.5%      No
+k8s-example-metallb-6f5b689667-cpdb2      1.05            3.88            27.0%      .71             6.81            10.4%      Yes
+k8s-example-sbapi-1-9-5fdbccdb66-6pf87    7.65            7.84            97.5%      28.79           59.10           48.7%      No
+k8s-example-sbapi-1-9-5fdbccdb66-7nqks    7.35            7.84            93.7%      33.20           59.10           56.1%      No
+k8s-example-sbapi-1-9-5fdbccdb66-ggnf6    4.45            7.84            56.7%      19.11           59.10           32.3%      No
+k8s-example-sbapi-1-9-5fdbccdb66-h2g7v    7.55            7.84            96.3%      37.86           59.10           64.0%      No
+k8s-example-sbapi-1-9-5fdbccdb66-l8ws2    7.75            7.84            98.8%      57.30           59.10           96.9%      No
+k8s-example-sbapi-1-9-5fdbccdb66-qwjfk    7.55            7.84            96.3%      36.29           59.10           61.4%      No
+k8s-example-sbapi-1-9-5fdbccdb66-rr99d    7.65            7.84            97.5%      50.26           59.10           85.0%      No
+k8s-example-sbapiv4-78d9545465-2s4dk      23.66           23.68           99.9%      44.07           44.13           99.8%      No
+k8s-example-sbapiv4-78d9545465-42brl      22.35           23.68           94.3%      38.33           44.13           86.8%      No
+k8s-example-sbapiv4-78d9545465-48b85      12.25           23.68           51.7%      25.50           44.13           57.7%      No
+k8s-example-sbapiv4-78d9545465-4sdk9      23.00           23.68           97.1%      35.91           44.13           81.3%      No
+k8s-example-sbapiv4-78d9545465-5gstv      23.65           23.68           99.8%      25.62           44.13           58.0%      No
+k8s-example-sbapiv4-78d9545465-5mqsv      22.70           23.68           95.8%      38.39           44.13           86.9%      No
+k8s-example-sbapiv4-78d9545465-6jkmg      20.30           23.68           85.7%      37.45           44.13           84.8%      No
+k8s-example-sbapiv4-78d9545465-7s8sx      23.60           23.68           99.6%      35.67           44.13           80.8%      No
+k8s-example-sbapiv4-78d9545465-95kmk      23.05           23.68           97.3%      37.79           44.13           85.6%      No
+k8s-example-sbapiv4-78d9545465-cg2zj      21.25           23.68           89.7%      29.63           44.13           67.1%      No
+k8s-example-sbapiv4-78d9545465-d6bz7      19.56           23.68           82.6%      42.47           44.13           96.2%      No
+k8s-example-sbapiv4-78d9545465-qcmr8      21.95           23.68           92.6%      27.48           44.13           62.2%      No
+k8s-example-sbapiv4-78d9545465-rsb5j      12.40           23.68           52.3%      37.39           44.13           84.7%      No
+k8s-example-sbapiv4-78d9545465-sh2zm      22.90           23.68           96.7%      33.06           44.13           74.9%      No
+k8s-example-sbapiv4-78d9545465-zb8zr      23.40           23.68           98.8%      38.30           44.13           86.7%      No
+k8s-example-usrcp-01                      1.49            3.88            38.4%      .96             14.28           6.7%       Yes
+k8s-example-usrcp-02                      1.53            3.88            39.4%      .89             14.28           6.2%       Yes
+k8s-example-usrcp-03                      1.42            3.88            36.5%      .80             14.28           5.6%       Yes
 
-� Weakest node (CPU+MEM < 50%): gke-dc1dtu-metallb-6f5b689667-cpdb2 (27.0% CPU)
-� Checking nodegroup resource availability in group [gke-dc1dtu-metallb]...
-❌ Nodegroup does NOT have enough resources to evacuate gke-dc1dtu-metallb-6f5b689667-cpdb2
+� Weakest node (CPU+MEM < 50%): k8s-example-metallb-6f5b689667-cpdb2 (27.0% CPU)
+� Checking nodegroup resource availability in group [k8s-example-metallb]...
+❌ Nodegroup does NOT have enough resources to evacuate k8s-example-metallb-6f5b689667-cpdb2
 Free CPU: 0 / Needed: 1.05 (core)
 Free MEM: 0 / Needed: .71 (GiB)
 
@@ -105,33 +105,33 @@ sh check-ultilized.sh   --include="sbapi|itom"   --exclude="usrcp|base"
 
 Node                                     CPU Req         CPU Total       CPU%       Mem Req (GiB)   Mem Total       Mem%       Underutilized?
 ---------------------------------------- --------------- --------------- --------   --------------- --------------- --------   -----------------
-gke-dc1dtu-itomv2-559bd6d476-285r7       9.71            15.76           61.6%      22.34           36.65           60.9%      No
-gke-dc1dtu-itomv2-559bd6d476-njjbj       8.53            15.76           54.1%      23.14           36.65           63.1%      No
-gke-dc1dtu-itomv2-559bd6d476-rxskj       10.81           15.76           68.5%      19.70           36.65           53.7%      No
-gke-dc1dtu-itomv2-559bd6d476-wpvb7       9.47            15.76           60.0%      19.45           36.65           53.0%      No
-gke-dc1dtu-itomv2-559bd6d476-wq776       9.03            15.76           57.2%      19.64           36.65           53.5%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-6pf87    7.65            7.84            97.5%      28.79           59.10           48.7%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-7nqks    7.35            7.84            93.7%      33.20           59.10           56.1%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-ggnf6    4.45            7.84            56.7%      19.11           59.10           32.3%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-h2g7v    7.55            7.84            96.3%      37.86           59.10           64.0%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-l8ws2    7.75            7.84            98.8%      57.30           59.10           96.9%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-qwjfk    7.55            7.84            96.3%      36.29           59.10           61.4%      No
-gke-dc1dtu-sbapi-1-9-5fdbccdb66-rr99d    7.65            7.84            97.5%      50.26           59.10           85.0%      No
-gke-dc1dtu-sbapiv4-78d9545465-2s4dk      23.66           23.68           99.9%      44.07           44.13           99.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-42brl      22.35           23.68           94.3%      38.33           44.13           86.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-48b85      12.25           23.68           51.7%      25.50           44.13           57.7%      No
-gke-dc1dtu-sbapiv4-78d9545465-4sdk9      23.00           23.68           97.1%      35.91           44.13           81.3%      No
-gke-dc1dtu-sbapiv4-78d9545465-5gstv      23.65           23.68           99.8%      25.62           44.13           58.0%      No
-gke-dc1dtu-sbapiv4-78d9545465-5mqsv      22.70           23.68           95.8%      38.39           44.13           86.9%      No
-gke-dc1dtu-sbapiv4-78d9545465-6jkmg      20.30           23.68           85.7%      37.45           44.13           84.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-7s8sx      23.60           23.68           99.6%      35.67           44.13           80.8%      No
-gke-dc1dtu-sbapiv4-78d9545465-95kmk      23.05           23.68           97.3%      37.79           44.13           85.6%      No
-gke-dc1dtu-sbapiv4-78d9545465-cg2zj      21.25           23.68           89.7%      29.63           44.13           67.1%      No
-gke-dc1dtu-sbapiv4-78d9545465-d6bz7      19.56           23.68           82.6%      42.47           44.13           96.2%      No
-gke-dc1dtu-sbapiv4-78d9545465-qcmr8      21.95           23.68           92.6%      27.48           44.13           62.2%      No
-gke-dc1dtu-sbapiv4-78d9545465-rsb5j      13.00           23.68           54.8%      38.02           44.13           86.1%      No
-gke-dc1dtu-sbapiv4-78d9545465-sh2zm      22.90           23.68           96.7%      33.06           44.13           74.9%      No
-gke-dc1dtu-sbapiv4-78d9545465-zb8zr      23.40           23.68           98.8%      38.30           44.13           86.7%      No
+k8s-example-itomv2-559bd6d476-285r7       9.71            15.76           61.6%      22.34           36.65           60.9%      No
+k8s-example-itomv2-559bd6d476-njjbj       8.53            15.76           54.1%      23.14           36.65           63.1%      No
+k8s-example-itomv2-559bd6d476-rxskj       10.81           15.76           68.5%      19.70           36.65           53.7%      No
+k8s-example-itomv2-559bd6d476-wpvb7       9.47            15.76           60.0%      19.45           36.65           53.0%      No
+k8s-example-itomv2-559bd6d476-wq776       9.03            15.76           57.2%      19.64           36.65           53.5%      No
+k8s-example-sbapi-1-9-5fdbccdb66-6pf87    7.65            7.84            97.5%      28.79           59.10           48.7%      No
+k8s-example-sbapi-1-9-5fdbccdb66-7nqks    7.35            7.84            93.7%      33.20           59.10           56.1%      No
+k8s-example-sbapi-1-9-5fdbccdb66-ggnf6    4.45            7.84            56.7%      19.11           59.10           32.3%      No
+k8s-example-sbapi-1-9-5fdbccdb66-h2g7v    7.55            7.84            96.3%      37.86           59.10           64.0%      No
+k8s-example-sbapi-1-9-5fdbccdb66-l8ws2    7.75            7.84            98.8%      57.30           59.10           96.9%      No
+k8s-example-sbapi-1-9-5fdbccdb66-qwjfk    7.55            7.84            96.3%      36.29           59.10           61.4%      No
+k8s-example-sbapi-1-9-5fdbccdb66-rr99d    7.65            7.84            97.5%      50.26           59.10           85.0%      No
+k8s-example-sbapiv4-78d9545465-2s4dk      23.66           23.68           99.9%      44.07           44.13           99.8%      No
+k8s-example-sbapiv4-78d9545465-42brl      22.35           23.68           94.3%      38.33           44.13           86.8%      No
+k8s-example-sbapiv4-78d9545465-48b85      12.25           23.68           51.7%      25.50           44.13           57.7%      No
+k8s-example-sbapiv4-78d9545465-4sdk9      23.00           23.68           97.1%      35.91           44.13           81.3%      No
+k8s-example-sbapiv4-78d9545465-5gstv      23.65           23.68           99.8%      25.62           44.13           58.0%      No
+k8s-example-sbapiv4-78d9545465-5mqsv      22.70           23.68           95.8%      38.39           44.13           86.9%      No
+k8s-example-sbapiv4-78d9545465-6jkmg      20.30           23.68           85.7%      37.45           44.13           84.8%      No
+k8s-example-sbapiv4-78d9545465-7s8sx      23.60           23.68           99.6%      35.67           44.13           80.8%      No
+k8s-example-sbapiv4-78d9545465-95kmk      23.05           23.68           97.3%      37.79           44.13           85.6%      No
+k8s-example-sbapiv4-78d9545465-cg2zj      21.25           23.68           89.7%      29.63           44.13           67.1%      No
+k8s-example-sbapiv4-78d9545465-d6bz7      19.56           23.68           82.6%      42.47           44.13           96.2%      No
+k8s-example-sbapiv4-78d9545465-qcmr8      21.95           23.68           92.6%      27.48           44.13           62.2%      No
+k8s-example-sbapiv4-78d9545465-rsb5j      13.00           23.68           54.8%      38.02           44.13           86.1%      No
+k8s-example-sbapiv4-78d9545465-sh2zm      22.90           23.68           96.7%      33.06           44.13           74.9%      No
+k8s-example-sbapiv4-78d9545465-zb8zr      23.40           23.68           98.8%      38.30           44.13           86.7%      No
 
 ✅ No underutilized node found (CPU+MEM < 50%)
 ```
@@ -155,7 +155,8 @@ gke-dc1dtu-sbapiv4-78d9545465-zb8zr      23.40           23.68           98.8%  
 ```mermaid
 flowchart TD
     A_Start --> B_Parse_Args
-    B_Parse_Args --> C_Has_Include
+    B_Parse_Args --> B2_Release_Cordons
+    B2_Release_Cordons --> C_Has_Include
     C_Has_Include -- Yes --> D_Filter_Nodes_By_Include
     C_Has_Include -- No --> E_List_All_Nodes
     D_Filter_Nodes_By_Include --> F_Filter_By_Age
@@ -203,19 +204,20 @@ flowchart TD
 | ID                            | Diễn giải                                                                           |
 | ----------------------------- | ----------------------------------------------------------------------------------- |
 | **A_Start**                   | Bắt đầu thực thi script.                                                            |
-| **B_Parse_Args**              | Phân tích tham số dòng lệnh: `--include`, `--exclude`, `--promote-evict`.           |
+| **B_Parse_Args**              | Phân tích tham số dòng lệnh: `--include`, `--exclude`, `--promote-evict`, `--min`.  |
+| **B2_Release_Cordons**        | Trả lại các node mà lượt chạy trước đã gom: node mang nhãn `ops.example/cordoned-by=check-ultilized` và đã giữ đủ `MIN_CORDON_HOLD=900`s thì được uncordon, gỡ nhãn và gỡ annotation `ops.example/cordoned-at`. Chỉ xét node khớp `--include` của chính lượt chạy đó. Node do người khác cordon tay không mang nhãn nên không bị đụng. |
 | **C_Has_Include**             | Kiểm tra có truyền `--include` không.                                               |
 | **D_Filter_Nodes_By_Include** | Lọc danh sách node theo regex `--include`. Dùng khi muốn kiểm tra nhóm node cụ thể. |
-| **E_List_All_Nodes**          | Nếu không truyền `--include`, liệt kê toàn bộ node trong cluster.                   |
-| **F_Filter_By_Age**           | Loại node mới spawn dưới 1 giờ (tránh false positive khi node chưa ổn định).        |
+| **E_List_All_Nodes**          | Nếu không truyền `--include`, liệt kê toàn bộ node trong cluster. Node đang cordoned bị loại khỏi danh sách ở cả hai nhánh: nó không nhận được pod nên không phải ứng viên để gom, cũng không được tính là chỗ trống của nhóm. |
+| **F_Filter_By_Age**           | Loại node mới spawn dưới 20 phút (`AGE_THRESHOLD=1200`, tránh false positive khi node chưa ổn định). |
 | **G_Eligible_Nodes**          | Kiểm tra còn node hợp lệ không sau khi lọc.                                         |
 | **H_Exit_No_Eligible**        | Nếu không còn node hợp lệ → thoát, kết thúc.                                        |
 | **I_Init_Table**              | In ra tiêu đề bảng thống kê sử dụng tài nguyên.                                     |
 | **J_Loop_Each_Node**          | Bắt đầu vòng lặp qua từng node đủ điều kiện.                                        |
 | **K_Describe_Node**           | Gọi `kubectl describe node` để lấy thông tin chi tiết.                              |
-| **L_Parse_CPU_Mem**           | Trích xuất lượng CPU & Memory request/allocatable từ bảng `Non-terminated Pods`.    |
+| **L_Parse_CPU_Mem**           | Trích xuất CPU & Memory request/allocatable từ khối `Allocatable:` và `Allocated resources:`. Quantity được quy về millicore/byte qua `quantity_to_base`; node nào không parse được thì in `SKIP-parse` và bị loại khỏi cả diện ứng viên lẫn tổng chỗ trống. |
 | **M_Calculate_Usage**         | Tính toán tỷ lệ sử dụng % cho CPU và Memory.                                        |
-| **N_Is_Underutilized**        | Nếu CPU < 50% **hoặc** cả CPU + Mem đều thấp → đánh dấu là underutilized.           |
+| **N_Is_Underutilized**        | Nếu CPU < 45% **và** Mem < 45% → đánh dấu là underutilized.                         |
 | **O_Mark_As_Weakest**         | Ghi nhận node yếu nhất trong các node underutilized.                                |
 | **P_Print_Row**               | In từng dòng bảng, kèm cột "Underutilized?"                                         |
 | **Q_Next_Node**               | Chuyển sang node kế tiếp.                                                           |
@@ -231,9 +233,9 @@ flowchart TD
 | **AA_Print_Not_Enough**       | Nếu không đủ tài nguyên dự phòng → dừng, không được phép cordon/evict.              |
 | **AB_Check_Promote**          | Kiểm tra có truyền `--promote-evict` không để bật hành động thật sự.                |
 | **AC_Abort_Not_Promoted**     | Nếu không có flag `--promote-evict` → chỉ báo cáo, không hành động.                 |
-| **AD_Cordon_Node**            | Gọi `kubectl cordon` để chặn node yếu khỏi nhận thêm workload.                      |
-| **AE_Evict_Pods**             | Gọi `kubectl drain` hoặc `kubectl evict` để di tản workload.                        |
-| **AF_Success_Done**           | Xác nhận hoàn thành quy trình xử lý node yếu.                                       |
+| **AD_Cordon_Node**            | Gọi `kubectl cordon` để chặn node yếu khỏi nhận thêm workload, rồi gắn nhãn `ops.example/cordoned-by=check-ultilized` và annotation `ops.example/cordoned-at=<epoch>`. |
+| **AE_Evict_Pods**             | `evict.sh` gọi eviction API `policy/v1` cho từng pod, nên tôn trọng PodDisruptionBudget; pod bị PDB chặn thì để nguyên tại chỗ chứ không hạ cấp sang `delete`. Chỉ evict pod có `ownerReferences[0].kind` thuộc `ReplicaSet`, `StatefulSet`, `Deployment`, `ReplicationController` — ownerKind khác bị bỏ qua vì không chắc có gì dựng lại pod. Loại trừ thêm namespace `app-check`, `app-logging`, `app-vhht` và pod có annotation `unsafe-to-evict=true`. |
+| **AF_Success_Done**           | `evict.sh` chờ node sạch pod (tối đa `DRAIN_TIMEOUT=180`s) rồi mới trả về. Node **không** được uncordon ở đây mà giữ nguyên trạng thái cordoned tới lượt chạy sau (**B2_Release_Cordons**): uncordon ngay biến node vừa dọn thành node rỗng nhất nhóm, scheduler đặt luôn pod thay thế quay về đúng nó. |
 ---
 > ⚔️ **Script `check-utilized.sh` + cordon/evict chủ động**
 > 🛡️ **Descheduler (Kubernetes built-in plugin)**

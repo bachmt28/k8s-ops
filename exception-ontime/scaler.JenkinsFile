@@ -48,11 +48,11 @@ pipeline {
     TARGET_DOWN         = '0'
     DEFAULT_UP          = '1'
     DOWN_HPA_HANDLING   = 'force'                  // skip hạ HPA để tránh kéo ngược
-    // JITTER_MAX_S        = '60'
+    // JITTER_MAX_S        = '90'
     HYST_MIN            = '3'
 
     // Compute Active
-    MAX_DAYS            = '60'
+    MAX_DAYS            = '90'
 
     // Debug
     DEBUG               = '1'
@@ -104,7 +104,7 @@ pipeline {
       steps {
         // dùng kubeconfig credentials của job folder (mỗi team/folder tự gán id khác nhau)
         // đổi 'kubeconfig_ops' thành id thật của bạn
-        withCredentials([file(credentialsId: 'local.backend-gke-dc1-dev-usrcl', variable: 'KUBECONFIG_FILE')]) {
+        withCredentials([file(credentialsId: 'local.backend-k8s-dev-cluster', variable: 'KUBECONFIG_FILE')]) {
           sh '''
             set -e
             export KUBECONFIG="${KUBECONFIG_FILE}"

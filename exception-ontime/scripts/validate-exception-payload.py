@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os, sys, re, datetime
 
-MAX_DAYS_ALLOWED = int(os.environ.get("MAX_DAYS_ALLOWED", "60"))
+MAX_DAYS_ALLOWED = int(os.environ.get("MAX_DAYS_ALLOWED", "70")) # Tăng lên 70 ngày
 TZ_ENV           = os.environ.get("TZ", "Asia/Bangkok")
 TODAY_OVERRIDE   = os.environ.get("TODAY", "").strip()
 

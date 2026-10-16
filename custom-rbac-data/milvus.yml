@@ -1,0 +1,52 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: milvus-project-owner-template
+rules:
+# 1. Quyền quản trị RBAC (Cực kỳ quan trọng để pass lỗi 'attempting to grant')
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings"]
+  verbs: ["*"]
+
+# 2. Nhóm Core (Pulsar/Milvus dùng rất nhiều)
+- apiGroups: [""]
+  resources: ["pods", "pods/log", "pods/status", "services", "endpoints", "configmaps", "secrets", "persistentvolumeclaims", "events", "serviceaccounts", "deployments", "statefulsets"]
+  verbs: ["*"]
+
+# 3. Nhóm Apps (Dành cho Deployments, StatefulSets chuẩn)
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "replicasets", "daemonsets", "pods", "secrets", "services"]
+  verbs: ["*"]
+
+# 4. Nhóm Extensions (Để xử lý các lỗi map sai group của Helm Chart cũ)
+- apiGroups: ["extensions"]
+  resources: ["pods", "secrets", "services", "statefulsets", "deployments", "ingresses"]
+  verbs: ["*"]
+
+# 5. Nhóm Batch (Nếu Milvus có chạy Job khởi tạo)
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["*"]
+
+# 6. Các API khác thường gặp trong hệ sinh thái Milvus (Storage, Autoscaling)
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["*"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: milvus-owner-binding
+  namespace: app-milvus
+subjects:
+- kind: User
+  name: "u-l5pjggmt3m" 
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: milvus-project-owner-template
+  apiGroup: rbac.authorization.k8s.io

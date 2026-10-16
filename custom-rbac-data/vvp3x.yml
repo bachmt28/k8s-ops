@@ -1,0 +1,61 @@
+# 1. Khai báo Role với đầy đủ các quyền mà VVP 3.x yêu cầu (bao gồm cả subresources)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole # Dùng ClusterRole làm "template" để tiện binding vào nhiều nơi
+metadata:
+  name: vvp3x-project-owner-template
+rules:
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "bind", "escalate"]
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets", "persistentvolumeclaims", "events", "namespaces", "nodes"]
+  verbs: ["get", "list", "watch"] # Quyền xem cơ bản
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets", "persistentvolumeclaims", "endpoints"]
+  verbs: ["*"] # Toàn quyền tạo/sửa trong namespace
+- apiGroups: [""]
+  resources: ["pods/log", "pods/status", "pods/exec"]
+  verbs: ["*"] # Fix triệt để lỗi "not currently held" cho logs
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["*"]
+- apiGroups: ["batch"]
+  resources: ["jobs/status"]
+  verbs: ["*"] # Fix triệt để lỗi "not currently held" cho jobs
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "replicasets"]
+  verbs: ["*"]
+- apiGroups: ["platform.ververica.com"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+# 2. Binding cho Namespace Quản lý (Control Plane)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vvp3x-owner-binding
+  namespace: app-vvp-system-v3
+subjects:
+- kind: User
+  name: u-rbvavgxnp3
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: vvp3x-project-owner-template
+  apiGroup: rbac.authorization.k8s.io
+---
+# 3. Binding cho Namespace chạy Job (Data Plane)
+# Thay "app-vvp-jobs" bằng tên namespace chạy job thực tế của bạn
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vvp3x-owner-binding
+  namespace: app-vvp-deploy-v3
+subjects:
+- kind: User
+  name: u-rbvavgxnp3
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: vvp3x-project-owner-template
+  apiGroup: rbac.authorization.k8s.io

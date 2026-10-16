@@ -1,0 +1,87 @@
+# CronJob 10 phut mot lan xoa PDB lam drain treo trong app-* (khong bao gio cho drain, nhieu PDB trung pod;
+# logic: pdb-guard.sh).
+# Cai / cap nhat: pdb/apply-pdb-guard.sh
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k8s-ops-jobs
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pdb-guard
+  namespace: k8s-ops-jobs
+---
+# Doc, xoa, va (patch) PDB; doc pod de so selector (luat 2). Gioi han namespace app-* nam o script (RBAC khong loc duoc theo ten ns).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pdb-guard
+rules:
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "delete", "patch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pdb-guard
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pdb-guard
+subjects:
+  - kind: ServiceAccount
+    name: pdb-guard
+    namespace: k8s-ops-jobs
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pdb-guard
+  namespace: k8s-ops-jobs
+spec:
+  # 10 phut: PDB dan moi deploy bi don truoc khi kip lam Machine xoa ket qua 30 phut (nguong
+  # alert MachineDeletionStuck). Moi lan 2 lenh list PDB, list pod chi o namespace co tu 2 PDB.
+  schedule: "*/10 * * * *"
+  timeZone: "Asia/Ho_Chi_Minh"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 600
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 3600
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: pdb-guard
+          imagePullSecrets:
+            - name: nexus-repo-secret
+          containers:
+            - name: pdb-guard
+              # Cung image ghim digest voi nodepool-warmup
+              image: common-docker.example.com/bitnami/kubectl@sha256:34e2ab0a0735231b40583dd951fc0572d796acf2338fceee53f4963ca19adb24
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/bash", "/opt/pdb-guard/pdb-guard.sh"]
+              env:
+                - name: DRY_RUN
+                  value: "false"
+                # Image khong co tzdata: dung dang POSIX de log ra gio Viet Nam
+                - name: TZ
+                  value: "<+07>-7"
+              volumeMounts:
+                - name: script
+                  mountPath: /opt/pdb-guard
+              resources:
+                requests: {cpu: 20m, memory: 32Mi}
+                limits: {cpu: 200m, memory: 128Mi}
+          volumes:
+            - name: script
+              configMap:
+                name: pdb-guard-script

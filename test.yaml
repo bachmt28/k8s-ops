@@ -5,6 +5,6 @@ annotations:
   on-exeption-reason: 'test ebank'
   on-exeption-endtime: 20250923
 workload-list: |-
-  sb-vhht-dev | workloadA
-  sb-vhht-test | workloadB
-  sb-vhht-test | workloadC
+  app-vhht-dev | workloadA
+  app-vhht-test | workloadB
+  app-vhht-test | workloadC

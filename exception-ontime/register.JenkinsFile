@@ -22,9 +22,9 @@ pipeline {
 - Nhập theo định dạng như ví dụ, <namespace> | <tên workload>, phân cách bởi dấu |
 - Nếu muốn exception toàn bộ workload trong namespace thì nhập <namespace> | all-of-workloads
 - Ví dụ:
-sb-example-namespace-1 | workloadA
-sb-example-namespace-2 | workloadB
-sb-example-namespace-3 | all-of-workloads
+app-example-namespace-1 | workloadA
+app-example-namespace-2 | workloadB
+app-example-namespace-3 | all-of-workloads
 - CHÚ Ý: Cần upload USER_KUBECONFIG download về từ rancher để xác thực
     '''
     base64File 'USER_KUBECONFIG'
@@ -38,14 +38,14 @@ sb-example-namespace-3 | all-of-workloads
     EXEC_REASON        = "${params.EXEC_REASON}"
     EXEC_END_DATE      = "${params.EXEC_END_DATE}"
     EXEC_WORKLOAD_LIST = "${params.EXEC_WORKLOAD_LIST}"
-    MAX_DAYS_ALLOWED   = "60"
+    MAX_DAYS_ALLOWED   = "90"
     RAW_ROOT = '/tmp/exceptions/raw'
-    RETAIN_DAYS = '60'
+    RETAIN_DAYS = '90'
     RETENTION_DRY_RUN = '0'
     DEBUG=0
 
-    HTTPS_PROXY = 'http://dc2-proxyuat.seauat.com.vn:8080'
-    NO_PROXY = 'localhost,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.seabank.com.vn,.seauat.com.vn,connectgateway.googleapis.com,199.36.153.8/30'
+    HTTPS_PROXY = 'http://proxy.example.com:8080'
+    NO_PROXY = 'localhost,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.example.com,.example.com,connectgateway.googleapis.com,199.36.153.8/30'
     TZ = 'Asia/Bangkok'
   }
 

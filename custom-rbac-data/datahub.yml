@@ -1,0 +1,58 @@
+# 1. Định nghĩa ClusterRole làm template (Chứa toàn bộ "vũ khí" DataHub cần)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: datahub-project-owner-template
+rules:
+# Quyền quản trị RBAC (Bắt buộc để pass lỗi 'attempting to grant RBAC permissions')
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings"]
+  verbs: ["*"]
+
+# Nhóm Apps (Deployments, StatefulSets...)
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "replicasets", "daemonsets", "deployments/status", "deployments/scale"]
+  verbs: ["*"]
+
+# Nhóm Batch (Jobs, CronJobs + Các quyền 'nhầm' của DataHub)
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs", "jobs/status", "deployments", "deployments/scale", "deployments/status"]
+  verbs: ["*"]
+
+# Nhóm Extensions (Dành cho các template DataHub đời cũ)
+- apiGroups: ["extensions"]
+  resources: ["deployments", "deployments/status", "jobs", "ingresses", "networkpolicies"]
+  verbs: ["*"]
+
+# Nhóm KEDA (Dành cho ScaledObjects)
+- apiGroups: ["keda.sh"]
+  resources: ["scaledobjects", "scaledjobs"]
+  verbs: ["*"]
+
+# Nhóm Core (Pods, Secrets, ConfigMaps...)
+- apiGroups: [""]
+  resources: ["pods", "pods/log", "pods/status", "pods/exec", "services", "endpoints", "configmaps", "secrets", "persistentvolumeclaims", "events", "serviceaccounts"]
+  verbs: ["*"]
+
+# Nhóm Networking & Autoscaling chuẩn
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses", "networkpolicies"]
+  verbs: ["*"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["*"]
+---
+# 2. Gán quyền (RoleBinding) cho User vào Namespace cụ thể
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: datahub-owner-binding
+  namespace: app-datahub-dt
+subjects:
+- kind: User
+  name: u-47fvqvpdxy
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: datahub-project-owner-template
+  apiGroup: rbac.authorization.k8s.io

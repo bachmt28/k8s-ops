@@ -3,33 +3,36 @@
 pipeline {
 agent {label 'local-agent'}
 options {
-  timeout(10) // timeout after 5 minute  
+  timeout(30) // timeout after 5 minute  
   disableConcurrentBuilds() //Only 1 build run at the sametime. current build wait previous build finish to run
   buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '14', numToKeepStr: '50')
 }
 
 
 environment {
-  webexTagName = '[GKE-DC2-JENKINS-DT]' // Use for tag name on notify content
+  webexTagName = '[jenkins]' // Use for tag name on notify content
   webexBotToken = credentials('webexBOT_VHHT')
-  HTTPS_PROXY='http://dc2-proxyuat.seauat.com.vn:8080'
-  NO_PROXY="localhost,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16, .seabank.com.vn, .seauat.com.vn, connectgateway.googleapis.com,199.36.153.8/30"
-  nsList='sb-backendapi sb-backendapi-r22 sb-backendapi-dev sb-adapter-uat' // sb-seapay-dev sb-seapay-test
+  HTTPS_PROXY='http://proxy.example.com:8080'
+  NO_PROXY="localhost,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16, .example.com, .example.com, connectgateway.googleapis.com,199.36.153.8/30"
+  nsList='app-backendapi app-backendapi-r22 app-backendapi-dev app-adapter-uat' // app-seapay-dev app-seapay-test
 }
 
 triggers {
-  cron '''H/10 19-23 * * *
-H/10 0-6 * * *
+  cron '''H/10 0-7 * * *
+H/10 12-13 * * *
+H/10 20-23 * * *
   '''
 }
   stages {
 //// === ////
     stage ('Execute'){
       steps { script{
-        withCredentials([file(credentialsId: "local.backend-gke-dc1-dev-usrcl", variable: 'FILE')]) {
+        withCredentials([file(credentialsId: "local.backend-k8s-dev-cluster", variable: 'FILE')]) {
             a =  sh (script: '''
               export KUBECONFIG=\$FILE
-              sh resources/check-ultilized.sh --include="sbapiv7" --promote-evict
+              sh resources/check-ultilized.sh --include="basev" --min=3 --promote-evict
+              sh resources/check-ultilized.sh --include="sbapiv" --promote-evict
+              
             ''', returnStdout: true)
             println(a)
         }
@@ -46,3 +49,6 @@ H/10 0-6 * * *
 //// === ////
   }
 }
+
+
+    

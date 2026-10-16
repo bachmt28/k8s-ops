@@ -185,8 +185,8 @@ def main():
         for ln, content, why in invalid:
             print(f"  - line {ln}: {why}  ==> `{content}`")
         print("\nVí dụ hợp lệ:")
-        print("  sb-check   | multitool")
-        print("  sb-backend | workloadA\n")
+        print("  app-check   | multitool")
+        print("  app-backend | workloadA\n")
         sys.exit(1)
 
     # Metadata Jenkins
@@ -273,7 +273,8 @@ def main():
     dbg(f" - {out_raw_csv}")
     dbg(f" - {meta_path}")
     try:
-        print("\n=== Nội dung dữ liệu đã được ghi nhận "===\n")
+        print("\n=== Nội dung dữ liệu đã được ghi nhận ===\n")
+
         with open(out_raw_csv, "r", encoding="utf-8") as f:
             for line in f:
                 print(line.rstrip())

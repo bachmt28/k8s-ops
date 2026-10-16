@@ -89,8 +89,8 @@ def collect_namespaces():
         for ln, content, why in invalid:
             print(f"  - line {ln}: {why}  ==> `{content}`")
         print("\nVí dụ hợp lệ:")
-        print("  sb-check   | multitool")
-        print("  sb-backend | workloadA\n")
+        print("  app-check   | multitool")
+        print("  app-backend | workloadA\n")
         sys.exit(1)
     if ns_from_wl:
         return ns_from_wl

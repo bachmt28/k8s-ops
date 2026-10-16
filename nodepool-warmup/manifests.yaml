@@ -1,0 +1,260 @@
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: overprovisioning
+# Thap hon priority mac dinh 0 cua workload that nen bi preempt, nhung cao hon
+# --expendable-pods-priority-cutoff=-10 cua cluster-autoscaler nen van kich duoc scale-up.
+value: -1
+globalDefault: false
+description: "Placeholder pod giu cho node trong. Bi moi workload thuc te preempt."
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nodepool-warmup
+  namespace: app-node-warmup
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nodepool-warmup-node-reader
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nodepool-warmup-node-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nodepool-warmup-node-reader
+subjects:
+  - kind: ServiceAccount
+    name: nodepool-warmup
+    namespace: app-node-warmup
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nodepool-warmup
+  namespace: app-node-warmup
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+  # Subresource rieng: quyen tren "deployments" khong du de kubectl scale.
+  - apiGroups: ["apps"]
+    resources: ["deployments/scale"]
+    verbs: ["get", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nodepool-warmup
+  namespace: app-node-warmup
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nodepool-warmup
+subjects:
+  - kind: ServiceAccount
+    name: nodepool-warmup
+    namespace: app-node-warmup
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nodepool-warmup-config
+  namespace: app-node-warmup
+data:
+  POOL: "k8s-example-sbapi-1-9"
+  TARGET_NODES: "7"
+  NAMESPACE: "app-node-warmup"
+  DEPLOY: "nodepool-warmup-placeholder"
+  # Gio treo tuong (theo TZ) ket thuc giu am. Khop voi lich CronJob nodepool-warmup-stop.
+  HOLD_UNTIL: "09:00"
+  # Qua han nay ma pool chua du TARGET_NODES thi coi la autoscaler khong cap node: giu am phan
+  # da co va Job ket thuc ma 2 (Failed, khong chay lai).
+  WAIT_SCALEUP_SECONDS: "1800"
+  INTERVAL: "5"
+  # Image bitnami/kubectl KHONG co tzdata: "Asia/Ho_Chi_Minh" bi bo qua im lang, date chay gio UTC
+  # va HOLD_UNTIL=09:00 thanh 16:00 gio VN. Dung chuoi POSIX offset co dinh (VN khong doi gio mua).
+  TZ: "<+07>-7"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodepool-warmup-placeholder
+  namespace: app-node-warmup
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: nodepool-warmup-placeholder
+  template:
+    metadata:
+      labels:
+        app: nodepool-warmup-placeholder
+    spec:
+      priorityClassName: overprovisioning
+      # Preempt xong giai phong cho ngay, khong bat workload that cho.
+      terminationGracePeriodSeconds: 0
+      imagePullSecrets:
+        - name: nexus-repo-secret
+      nodeSelector:
+        cloud.google.com/gke-nodepool: k8s-example-sbapi-1-9
+      tolerations:
+        - key: ratio
+          operator: Equal
+          value: "1-9"
+          effect: NoSchedule
+      # Chot quan he 1 placeholder = 1 node ma logic dem cua warmup.sh dua vao.
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: nodepool-warmup-placeholder
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: pause
+          image: common-docker.example.com/pause:3.9
+          resources:
+            requests:
+              cpu: "7000m"
+              memory: "48Gi"
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "7000m"
+              memory: "48Gi"
+              ephemeral-storage: "1Gi"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nodepool-warmup-start
+  namespace: app-node-warmup
+spec:
+  schedule: "0 7 * * 1-5"
+  timeZone: "Asia/Ho_Chi_Minh"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # Script tu dung o HOLD_UNTIL. Deadline chi la luoi an toan khi script treo, nen PHAI dai hon
+      # khung giu am (07:00 -> 09:00 = 7200s) + thoi gian keo image. Dat bang dung 7200 thi Job
+      # bi giet dung luc giu am xong, bao Failed oan (da xay ra 29/09/2026).
+      activeDeadlineSeconds: 8100
+      # Chay lai khi pod chet giua chung (node hong, bi duoi). Script chay lai van dung o
+      # HOLD_UNTIL vi moc la gio treo tuong.
+      backoffLimit: 2
+      podFailurePolicy:
+        rules:
+          # Ma 2 = autoscaler khong cap du node: loi that, chay lai khong giai quyet duoc gi.
+          - action: FailJob
+            onExitCodes:
+              containerName: warmup
+              operator: In
+              values: [2]
+          # Pod bi preempt/duoi/node bi xoa: khong tinh vao backoffLimit.
+          - action: Ignore
+            onPodConditions:
+              - type: DisruptionTarget
+                status: "True"
+      # Job loi giu nguyen thi KubeJobFailed keu mai toi khi ai do xoa Job. Tu don sau 20h:
+      # alert het truoc luot chay sang hom sau, van du thoi gian doc log trong ngay.
+      ttlSecondsAfterFinished: 72000
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: nodepool-warmup
+          imagePullSecrets:
+            - name: nexus-repo-secret
+          containers:
+            - name: warmup
+              # Ghim digest + IfNotPresent: node da co image thi chay khong can goi registry. Tag latest
+              # bat pull moi lan (29/09/2026 mot node mat DNS toi registry -> Job ImagePullBackOff), va
+              # bitnami co the doi/xoa tag latest bat cu luc nao.
+              image: common-docker.example.com/bitnami/kubectl@sha256:34e2ab0a0735231b40583dd951fc0572d796acf2338fceee53f4963ca19adb24
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/bash", "/opt/warmup/warmup.sh"]
+              envFrom:
+                - configMapRef:
+                    name: nodepool-warmup-config
+              volumeMounts:
+                - name: script
+                  mountPath: /opt/warmup
+                - name: holidays
+                  mountPath: /opt/holidays
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "64Mi"
+                limits:
+                  cpu: "200m"
+                  memory: "128Mi"
+          volumes:
+            - name: script
+              configMap:
+                name: nodepool-warmup-script
+                defaultMode: 0555
+            # optional: thieu ConfigMap thi script canh bao va chay nhu ngay thuong.
+            - name: holidays
+              configMap:
+                name: nodepool-warmup-holidays
+                optional: true
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nodepool-warmup-stop
+  namespace: app-node-warmup
+spec:
+  schedule: "0 9 * * 1-5"
+  timeZone: "Asia/Ho_Chi_Minh"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # 120s tung khong du khi cluster cham (su co 28/09/2026: pod chua kip chay da het han).
+      activeDeadlineSeconds: 600
+      backoffLimit: 3
+      ttlSecondsAfterFinished: 72000
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: nodepool-warmup
+          imagePullSecrets:
+            - name: nexus-repo-secret
+          containers:
+            - name: stop
+              # Ghim digest + IfNotPresent: node da co image thi chay khong can goi registry. Tag latest
+              # bat pull moi lan (29/09/2026 mot node mat DNS toi registry -> Job ImagePullBackOff), va
+              # bitnami co the doi/xoa tag latest bat cu luc nao.
+              image: common-docker.example.com/bitnami/kubectl@sha256:34e2ab0a0735231b40583dd951fc0572d796acf2338fceee53f4963ca19adb24
+              imagePullPolicy: IfNotPresent
+              command:
+                - kubectl
+                - -n
+                - app-node-warmup
+                - scale
+                - deploy/nodepool-warmup-placeholder
+                - --replicas=0
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "64Mi"
+                limits:
+                  cpu: "200m"
+                  memory: "128Mi"

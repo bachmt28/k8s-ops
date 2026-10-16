@@ -1,2 +1,2 @@
-sb-trino
-sb-awx
+app-trino
+app-awx
